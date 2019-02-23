@@ -1,0 +1,9 @@
+(* In why3, Integer constants can be given in base 10, 16, 8 or 2. Real constants can be given in base 10 or 16 *)
+module UInt256
+	use mach.int.Unsigned
+	type uint256
+	constant max_uint256: int = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+	clone export mach.int.Unsigned with
+		type t = uint256,
+		constant max = max_uint256
+end

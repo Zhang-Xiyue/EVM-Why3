@@ -1,0 +1,939 @@
+module EVM
+(* Focus on machine state: Program Counter uint256, Gas Available, Stack Contents, Memory Contents which are volatile Machine state;
+with the account storage as persistent world state *)
+
+(* the library support *)
+use import array.Array
+use import int.Int (* Arithmetic *)
+use import list.ListRich (* combo theory that includes all list operations like length, reversal, and concatenation *)
+use import option.Option
+use import UInt256
+use import UInt160
+use import UInt8
+
+(* Use clear alias for commonly-used type *)
+
+
+(* 32-bit and 64-bit signed and unsigned integers ([Int32], [UInt32], [Int64], and [UInt64]) as well as 31-bit and 
+63-bit signed integers ([Int31] and [Int63] have been instantiated *)
+(* They can be transformed using to_int and of_int, which can be further encapsulated for other transformation between type *) 
+type byte = uint8
+type address = uint160
+type machword = uint256
+
+(* Set explicit type transformation, such as machword to address, machword to byte in each newly-built library,
+encapsulated as a direct function, e.g. to_int and of_int to a function *)
+
+(* memory: word addressed byte array *)
+(* stack: one way of model is modeled as list uint256, with a maximum size of 1024 *)
+(* storage(independent): word addressed word array, maintained as part of the system state *)
+
+(* Enumeration type*)
+type memory_content = 
+   | Item8
+   | Item256
+type memory = machword -> option memory_content
+type stack = list uint256
+type storage = machword -> machword (* machine word -> machine word *)
+
+(* Auxiliary functions for memory *)
+(* Memory initialization*)
+
+let empty_memo: memory = fun addr: machword -> None
+
+let rec update_memoContent (memo: memory) (idx: uint256) (cont: list memory_content) (n: int): memory 
+requires {n >= 0}
+=   match n with 
+      | 0 -> memo
+      | m + 1 -> 
+        match cont with 
+          | Nil -> memo
+          | h :: t -> update_memoContent (fun addr -> if addr = idx then h else memo addr) (idx + 1) t m
+        end
+    end
+
+let rec read_memoContent (idx: uint256) (n: int) (memo: memory): list memory_content
+    requires {n >= 0}
+= match n with 
+    | 0 -> Nil
+    | m + 1 -> memo idx :: read_memoContent (idx + 1) m memo
+  end
+
+(* Auxiliary functions for stack *)
+
+let push_stack (s: stack) (ele: machword): stack = ele :: s
+
+let pop_stack (s: stack): stack * option machword  = 
+    match s with
+    | ele :: (tl s) -> (tl s, Some ele)
+    | _ -> (s, None) 
+    end
+
+(* EVM status &  *)
+
+(* EVM Operations *)
+
+(* Record the number of items required on the stack and returned to the stack for a given operation *)
+type st_num = int * int
+
+(* Bits *)
+type bits_inst =
+    | BIT_AND  
+    | BIT_OR
+    | BIT_XOR
+    | BIT_NOT
+    | BYTE (* take one byte out of a word *)
+
+(* ??? WHy the type of 0X16 and etc. is byte, maybe not needed *)
+let bit_inst_opcode (inst: bits_inst): byte =
+    match inst with 
+        | BIT_AND -> 0X16
+        | BIT_OR -> 0X17
+        | BIT_XOR -> 0X18
+        | BIT_NOT -> 0X19
+        | BYTE -> 0X1a
+    end
+
+let bit_inst_num (inst: bits_inst): st_num =
+    match inst with 
+        | BIT_AND -> (2, 1)
+        | BIT_OR -> (2, 1)
+        | BIT_XOR -> (2, 1)
+        | BIT_NOT -> (1, 1)
+        | BYTE -> (2, 1)
+    end
+
+(* Signed Arithmetics *)
+type sign_arith_inst =
+| SDIV
+| SMOD
+| SLT
+| SGT
+| SEXTEND
+
+let sign_arith_inst_opcode (inst: sign_arith_inst): byte =
+match inst with 
+| SDIV -> 0X05
+| SMOD -> 0X07
+| SLT -> 0X12
+| SGT -> 0X13
+| SEXTEND -> 0X0b 
+end   
+
+let sign_arith_inst_num (inst: sign_arith_inst): st_num =
+match inst with 
+| SDIV -> (2, 1)
+| SMOD -> (2, 1)
+| SLT -> (2, 1)
+| SGT -> (2, 1)
+| SEXTEND -> (2, 1)
+end   
+          
+(* Unsigned Arithmetics *)
+type arith_inst =
+| ADD
+| MUL
+| SUB
+| DIV
+| MOD
+| ADDMOD
+| MULMOD
+| EXP
+| ARITH_LT
+| ARITH_GT
+| ARITH_EQ
+| ISZERO
+| SHA3
+
+let arith_inst_opcode (inst: arith_inst): byte =
+match inst with 
+| ADD -> 0X01
+| MUL -> 0X02
+| SUB -> 0X03
+| DIV -> 0X04
+| MOD -> 0X06
+| ADDMOD -> 0X08
+| MULMOD -> 0X09
+| EXP -> 0X0a
+| ARITH_LT -> 0X10
+| ARITH_GT -> 0X11
+| ARITH_EQ -> 0X14
+| ISZERO -> 0X15
+| SHA3 -> 0X20
+end
+
+let arith_inst_num (inst: arith_inst): st_num =
+match inst with 
+| ADD -> (2, 1)
+| MUL -> (2, 1)
+| SUB -> (2, 1)
+| DIV -> (2, 1)
+| MOD -> (2, 1)
+| ADDMOD -> (3, 1)
+| MULMOD -> (3, 1)
+| EXP -> (2, 1)
+| ARITH_LT -> (2, 1)
+| ARITH_GT -> (2, 1)
+| ARITH_EQ -> (2, 1)
+| ISZERO -> (1, 1)
+| SHA3 -> (2, 1)
+end
+
+(* Information *)
+type info_inst =
+| ADDRESS
+| BALANCE
+| ORIGIN (* The external account that started the transaction *)
+| CALLER
+| CALLVALUE
+| CALLDATASIZE
+| CODESIZE
+| GASPRICE
+| EXTCODESIZE (* Size of the code of a specified account *)
+| BLOCKHASH
+| COINBASE (* The address of the miner that validates the current block *)
+| TIMESTAMP
+| NUMBER
+| DIFFICULTY
+| GASLIMIT
+| GAS
+
+
+let info_inst_opcode (inst: info_inst): byte =
+match inst with
+| ADDRESS -> 0X30
+| BALANCE -> 0X31
+| ORIGIN -> 0X32
+| CALLER -> 0X33
+| CALLVALUE -> 0X34
+| CALLDATASIZE -> 0X36
+| CODESIZE -> 0X38
+| GASPRICE -> 0X3a
+| EXTCODESIZE -> 0X3b
+| BLOCKHASH -> 0X40
+| COINBASE -> 0X41 
+| TIMESTAMP -> 0X42
+| NUMBER -> 0X43
+| DIFFICULTY -> 0X44
+| GASLIMIT -> 0X45
+| GAS -> 0X5a
+end
+
+let info_inst_num (inst: info_inst): st_num =
+match inst with
+| ADDRESS -> (0, 1)
+| BALANCE -> (1, 1)
+| ORIGIN -> (0, 1)
+| CALLER -> (0, 1)
+| CALLVALUE -> (0, 1)
+| CALLDATASIZE -> (0, 1)
+| CODESIZE -> (0, 1)
+| GASPRICE -> (0, 1)
+| EXTCODESIZE -> (1, 1)
+| BLOCKHASH -> (1, 1)
+| COINBASE -> (0, 1) 
+| TIMESTAMP -> (0, 1)
+| NUMBER -> (0, 1)
+| DIFFICULTY -> (0, 1)
+| GASLIMIT -> (0, 1)
+| GAS -> (0, 1)
+end
+
+(* Memory Operations *)
+type memory_inst =
+| MLOAD 
+| MSTORE 
+| MSTORE8 
+| MSIZE (* the size of the currently used part of the memory *)
+| CALLDATACOPY (* copy the caller's data to the memory *)
+| CODECOPY (* copy part of the currently running code to the memory *)
+| EXTCODECOPY (* copy part of the code of a specified account *)
+
+let memory_inst_opcode (inst: memory_inst) : byte =
+match inst with 
+| MLOAD -> 0X51 
+| MSTORE -> 0X52 
+| MSTORE8 -> 0X53 
+| MSIZE -> 0X59 (* the size of the currently used part of the memory *)
+| CALLDATACOPY -> 0X37 (* copy the caller's data to the memory *)
+| CODECOPY -> 0X39(* copy part of the currently running code to the memory *)
+| EXTCODECOPY -> 0X3c(* copy part of the code of a specified account *)
+end
+
+let memory_inst_num (inst: memory_inst) : st_num =
+match inst with 
+| MLOAD -> (1, 1) 
+| MSTORE -> (2, 0) 
+| MSTORE8 -> (2, 0) 
+| MSIZE -> (0, 1)(* the size of the currently used part of the memory *)
+| CALLDATACOPY -> (3, 0) (* copy the caller's data to the memory *)
+| CODECOPY -> (3, 0)(* copy part of the currently running code to the memory *)
+| EXTCODECOPY -> (4, 0)(* copy part of the code of a specified account *)
+end
+
+
+(* Storage Operations *)
+type storage_inst =
+| SLOAD (* Read one word from the storage *)
+| SSTORE (* Write one word to the storage *)
+
+let storage_inst_opcode (inst: storage_inst): byte = 
+match inst with 
+| SLOAD -> 0X54(* Read one word from the storage *)
+| SSTORE -> 0X55 (* Write one word to the storage *)
+end
+
+let storage_inst_num (inst: storage_inst): st_num = 
+match inst with 
+| SLOAD -> (1, 1)(* Read one word from the storage *)
+| SSTORE -> (2, 0) (* Write one word to the storage *)
+end
+
+(*Program Counter Operation *)
+type pc_inst =
+ | JUMP (* jumping to the specified location in the code *)
+ | JUMPI (* jumping to the specified location in the code if a condition is met *)
+ | PC (* the current location in the code *)
+ | JUMPDEST (* indicate jump destinations. *)
+
+let pc_inst_opcode (inst: pc_inst): byte = match inst with
+| JUMP -> 0X56
+| JUMPI -> 0X57
+| PC -> 0X58
+| JUMPDEST -> 0X5b
+end
+
+let pc_inst_num (inst: pc_inst): st_num = match inst with
+| JUMP -> (1, 0)
+| JUMPI -> (2, 0)
+| PC -> (0, 1)
+| JUMPDEST -> (0, 0)
+end
+
+
+(* Stack Operations *)
+
+(* 32 PUSH operations in total *)
+(* The pushed value is represented by a list of bytes. *)
+
+type stack_inst =
+  | POP (* throw away the top element of the stack *)
+  | PUSH_N of list byte (* pushing an element to the stack *) (* ??? Confirm this type representation "of" which is right in ocaml *)
+  | CALLDATALOAD (* push a word to the stack which is taken from the caller's data *)
+
+exception PushError
+let stack_inst_opcode (inst: stack_inst): list byte 
+raises {PushError -> False}
+= match inst with
+| POP -> [0X50]
+| PUSH_N lst ->
+     if 1 <= length(lst) <= 32 then [uint8_of_int (length lst) + 0X5f] ++ lst else raise PushError 
+     (* opcode of the operation ++ the pushed value list *)
+| CALLDATALOAD -> [0X35]
+end
+
+let stack_inst_num (inst: stack_inst): st_num = match inst with
+| POP -> (1, 0)
+| PUSH_N _ -> (0, 1)
+| CALLDATALOAD -> (1, 1)
+end
+
+(* The 16 insts for duplicating a stack element, take a stack element and copy it on top of the stack *)
+type dup_inst = uint4
+
+let dup_inst_opcode (inst: dup_inst): byte =
+(uint8_of_int (uint4_to_int inst) + 0X80) (* ??? add operation confirmation in uint8, also the byte representation is involved *)
+
+let dup_inst_num (inst: dup_inst): st_num =
+(uint4_to_int inst, (uint4_to_int inst) + 1 )
+(* The 16 insts for taking a stack element and duplicate it on top of the stack.*)
+type swap_inst = uint4
+
+let swap_inst_opcode (inst: swap_inst): byte =
+  (word8FromInt (word4ToUInt m) + 0X90)
+
+let swap_inst_num (inst: swap_inst): st_num =
+(word4ToUInt m + 1, word4ToUInt m + 1)
+
+(* Logging Instructions *)
+(* Instructions for logging events with different number of arguments. *)
+type log_inst =
+| LOG0
+| LOG1
+| LOG2
+| LOG3
+| LOG4
+
+let log_inst_opcode (inst: log_inst): byte = match inst with
+| LOG0 -> 0Xa0
+| LOG1 -> 0Xa1
+| LOG2 -> 0Xa2
+| LOG3 -> 0Xa3
+| LOG4 -> 0Xa4
+end
+
+let log_inst_num (inst: log_inst): st_num = match inst with
+| LOG0 -> (2, 0)
+| LOG1 -> (3, 0)
+| LOG2 -> (4, 0)
+| LOG3 -> (5, 0)
+| LOG4 -> (6, 0)
+end
+
+(* Instructions for interaction about accounts' code *)
+type account_inst =
+  | STOP (* finishing the execution normally, with the empty return data *)
+  | CREATE (* deploying some code in an account *)
+  | CALL (* calling (i.e. sending a message to) an account *)
+  | CALLCODE (* calling into this account, but the executed code can be some other account's *)
+  | RETURN (* finishing the execution normally with data *)
+  | DELEGATECALL (* calling into this account, the executed code can be some other account's
+                       but the sent value and the sent data are unchanged. *)
+  | SUICIDE (* send all remaining Eth balance to the specified account, *)
+            (* finishing the execution normally, and flagging the current account for deletion *)
+
+let account_inst_opcode (inst: account_inst): byte = match inst with
+| STOP -> 0X00
+| CREATE -> 0Xf0
+| CALL -> 0Xf1
+| CALLCODE -> 0Xf2
+| RETURN -> 0Xf3
+| DELEGATECALL -> 0Xf4
+| SUICIDE -> 0Xff
+end
+
+let account_inst_num (inst: account_inst): st_num = match inst with
+| STOP         -> (0, 0)
+| CREATE       -> (3, 1)
+| CALL         -> (7, 1)
+| CALLCODE     -> (7, 1)
+| RETURN       -> (2, 0)
+| DELEGATECALL -> (6, 1)
+| SUICIDE      -> (1, 0)
+end
+
+(* Instruction Set *)
+(* The previous inductive sets above are here combined into a single type. *)
+type inst =
+  | Unknown byte
+  | Bits bits_inst
+  | Sarith sign_arith_inst
+  | Arith arith_inst
+  | Info info_inst
+  | Dup dup_inst
+  | Memory memory_inst
+  | Storage storage_inst
+  | Pc pc_inst
+  | Stack stack_inst
+  | Swap swap_inst
+  | Log log_inst
+  | Account account_inst
+
+(*let to_list m = 
+match m with
+ | None -> Nil
+ | Some s -> [s]
+end*)
+
+
+let inst_opcode (ins: inst): list byte = match ins with
+| Unknown byte -> [byte]
+| Bits b -> [bits_inst_opcode b]
+| Sarith s -> [sign_arith_inst_opcode s]
+| Arith a -> [arith_inst_opcode a]
+| Info i -> [info_inst_opcode i]
+| Dup d -> [dup_inst_opcode d]
+| Memory m -> [memory_inst_opcode m]
+| Storage s -> [storage_inst_opcode s]
+| Pc p -> [pc_inst_opcode p]
+| Stack s -> stack_inst_opcode s
+| Swap s -> [swap_inst_opcode s]
+| Log l -> [log_inst_opcode l]
+| Account m -> [account_inst_opcode m]
+end
+
+
+let inst_stack_num (ins: inst): st_num = match ins with
+| Bits b -> bit_inst_num b
+| Sarith s -> sign_arith_inst_num s
+| Arith a -> arith_inst_num a
+| Info i -> info_inst_num i
+| Dup d -> dup_inst_num d
+| Memory m -> memory_inst_num m
+| Storage s -> storage_inst_num s
+| Pc p -> pc_inst_num p
+| Stack s -> stack_inst_num s
+| Swap s -> swap_inst_num s
+| Log l -> log_inst_num l
+| Account m -> account_inst_num m
+end
+
+(* Take the size of an opcode to ease the parsing of hex representation of EVM code *)
+
+let inst_size (ins: inst): int = intFromNat (length (inst_opcode ins))
+
+
+(* Gas mechanism: Not complete *)
+(* ??? Gas calculation *)
+let gas_of (i: inst) : int =
+  let raw_gas = match i with
+    |PUSH _ -> 3
+    |POP -> 2
+    |_ -> 1
+    end
+  in (raw_gas - 1)
+
+let Gjumpdest: int = 1
+
+let Gset: int = 20000
+
+let Greset: int = 5000
+
+let Gcreate: int = 32000
+
+let Gcodedeposit: int = 200
+
+let Gcallvalue: int = 9000
+
+let Gcallstipend: int = 2300
+
+let Gnewaccount = 25000
+
+let Gexp: int = 10
+
+let Gmemory: int = 3
+
+let Gtxcreate: int = 32000
+
+let Gtxdatazero: int = 4
+
+let Gtxdatanonzero: int = 68
+
+let Gtransaction: int = 21000
+
+let Glog: int = 375
+
+let Glogdata: int = 8
+
+let Glogtopic: int = 375
+
+let Gsha3: int = 30
+
+let Gsha3word: int = 6
+
+let Gcopy: int = 3
+
+let Gblockhash: int = 20
+
+
+(* transformation result after different insturctions *)
+
+(* i.e. Program, with insts stored in a inst list, using program counters to look up insts*)
+
+
+type program = {
+  program_content : int -> option inst; (* changed to option to look up instructions from positions *)
+  program_length  : int; (* the length of the program in bytes *)
+}
+
+(* Empty program *)
+
+
+let empty_program: program = {
+  program_content = (fun _ -> None); (* fun support in Why3, at least we could handle this with function definition *)
+  program_length = 0
+}
+
+(*(* Translate a list of instructions into a program, program content as an AVL tree. The encoding program_content_formatter needs to be implemented *)
+
+let program_of_lstInst (lst: list inst) (program_content_formatter: list inst-> (int -> option inst)): program  = {
+  program_content = program_content_formatter lst;
+  program_length = integerFromNat (length lst);
+}
+*)
+
+
+(* Program as a byte sequence *)
+(* Regard the program as a byte-indexed read-only memory *)
+let program_as_byte_Seq(p: program) (idx: nat): byte =
+   match p.program_content (intFromNat idx) with
+   | None -> 0
+   | Some inst ->
+      match List.nth 0 (inst_opcode inst) with (* Find the take index support in Why3 *)
+      | None -> 0
+      | Some a -> a
+      end
+   end
+
+(* Now we have processed the program as byte sequence and next we need to define the result of this byte sequence
+, namely the outcome result of the program. So the  *)
+(* The variable context contains the changeable information. *)
+
+(* Representation of the volatile part *)
+type variable_ctx = {
+  vctx_stack : list uint256; (* In EVM definition, max length is 1024 *)
+  vctx_memory : memory;
+  vctx_memory_usage : int; (* the current memory usage *) 
+  vctx_storage : storage;
+  vctx_pc : int; (* the program counter *)
+  vctx_balance : address -> uint256; (* balances of all accounts *)
+  vctx_caller : address; (* the caller's address *)
+  vctx_value_sent : uint256; (* the amount of Eth sent along the current invocation *)
+  vctx_data_sent : list byte; (* the data sent along the current invocation *)
+  vctx_storage_at_call : storage; (* the storage content at the invocation*)
+  vctx_balance_at_call : address -> uint256; (* the balances at the invocation *)
+  vctx_origin : address; (* the external account that started the current transaction *)
+  vctx_ext_program : address -> program; (* the codes of all accounts *)
+  vctx_block : block_info; (* the current block *)
+  vctx_gas : integer; (* remaining gas before the instruction *)
+  vctx_account_existence : address -> bool;
+  vctx_touched_storage_index : list uint256;
+  vctx_logs : list log_entry; (* stored newest first *)
+  vctx_refund : int;
+  vctx_gasprice : uint256;
+}
+
+(* The constant context contains the stable information. *)
+type constant_ctx = {
+  cctx_program : program; (* the code in the account under analysis. *)
+  cctx_this : address; (* the address of the account under analysis. *)
+  cctx_hash_filter : list byte -> bool;
+}
+
+(* The Result of an Instruction *)
+(* Result of program execution is results of its instructions contained in the program *)
+
+
+(* A minimal instruction result *)
+
+(* A complete instruction result *)
+type instruction_result =
+| InstructionContinue variable_ctx (* the execution should continue. *)
+| InstructionToEnvironment
+    contract_action   (* the contract's action *)
+  * variable_ctx      (* the last variable env *)
+  * option (int * int) (* the variable environment to return to *) (* Question here about the return thing *)
+(* the execution stops; either for the moment just call out another account, or finish the current invocation *)
+
+
+(* When the contract fails, the result of the instruction looks like this: *)
+let instruction_failure_result (v: variable_ctx) (reasons: list failure_reason): instruction_result =
+  InstructionToEnvironment (ContractFail reasons) v None
+
+(* When the contract returns, the result of the instruction looks like this: *)
+let instruction_return_result (x: list byte)  (v: variable_ctx): instruction_result =
+  InstructionToEnvironment (ContractReturn x) v None
+
+(* Auxiliary Functions for defining EVM operations *)  
+
+(* Gas inst is modeled to be a value dependent on the variable environment *)
+(* This is not a problem when analyzing a single invocation of a loopless contract *)
+(* For futher possible use, gas accounting should be complete. *)
+
+
+let gas (v: variable_ctx): uint256  = word256FromInt v.vctx_gas
+
+(* M function in the yellow paper for updating the memory usage counter. *)
+let Memo_use (s: int) (f: uint256) (l:uint256) : int =
+  if l = 0 then s else max s ((uint f + uint l + 31) div 32) (* uint256 to uint maybe needed, also the max support needs to be checked *)
+
+(* Updating a balance of a single account:  *)
+let update_balance (a: address) (f: uint256 -> uint256) (orig: address -> uint256) (x: address): uint256 = 
+if x = a then f (orig a) else orig x 
+
+(* Popping stack elements: *)
+let vctx_pop_stack (n: nat) (v: variable_ctx) : variable_ctx =
+{ v with vctx_stack =  reverse (tl (reverse v.vctx_stack)) } (* expr record: { (lqualid = expr;)+ };  
+{expr with (lqualid = expr;)+}; Record field update: { term with term-field+} *)
+
+(* Updating the storage at an index: *)
+let vctx_update_storage (idx: uint256) (vall: uint256) (v: variable_ctx) : variable_ctx =
+  {v with vctx_storage = (fun x -> if x = idx then vall else v.vctx_storage x) }
+
+(* Peeking the next instruction: *)
+let vctx_next_instruction (v: variable_ctx) (c: constant_ctx) : option inst  =
+  match c.cctx_program.program_content v.vctx_pc with
+  | Some i -> Some i
+  | None -> Some (Account STOP)
+  end
+
+(* Advancing the program counter: *)
+val vctx_advance_pc :  ->  -> 
+let vctx_advance_pc (c: constant_ctx) (v: variable_ctx): variable_ctx =
+{ v with vctx_pc =
+     (match vctx_next_instruction v c with
+     | None -> v.vctx_pc + 1
+     | Some inst -> v.vctx_pc + integerFromInt (inst_size inst) end) }
+
+(* No-op, which just advances the program counter: *)
+val stack_0_0_op : variable_ctx -> constant_ctx -> instruction_result
+let stack_0_0_op v c = InstructionContinue (vctx_advance_pc c v)
+
+(* A general pattern of operations that pushes one element onto the stack:  *)
+val stack_0_1_op : variable_ctx -> constant_ctx -> w256 -> instruction_result
+let stack_0_1_op v c w =
+   InstructionContinue (vctx_advance_pc c <| v with vctx_stack = w :: v.vctx_stack |>)
+
+
+(* A general pattern of operations that transforms the topmost element of the stack: *)
+val stack_1_1_op : variable_ctx -> constant_ctx -> (w256 -> w256) -> instruction_result
+let stack_1_1_op v c f = match v.vctx_stack with
+  | Nil -> instruction_failure_result v [TooShortStack]
+  | h :: t -> InstructionContinue (vctx_advance_pc c <| v with vctx_stack = f h :: t |>)
+end
+
+(* A general pattern of operations that take two words and produce one word: *)
+val stack_2_1_op : variable_ctx -> constant_ctx -> (w256 -> w256 -> w256) -> instruction_result
+let stack_2_1_op v c f = match v.vctx_stack with
+ | operand0 :: operand1 :: rest ->
+       InstructionContinue
+         (vctx_advance_pc c <| v with vctx_stack = f operand0 operand1 :: rest |>)
+  | _ -> instruction_failure_result v [TooShortStack]
+end
+
+(* A general pattern of operations that take three words and produce one word: *)
+val stack_3_1_op : variable_ctx -> constant_ctx -> (w256 -> w256 -> w256 -> w256) -> instruction_result
+let stack_3_1_op v c f = match v.vctx_stack with
+ | operand0 :: operand1 :: operand2 :: rest ->
+       InstructionContinue
+         (vctx_advance_pc c <| v with vctx_stack = f operand0 operand1 operand2 :: rest |>)
+ | _ -> instruction_failure_result v [TooShortStack]
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(* Interaction between the contract and the environment *)
+
+(* The environment calls the contract under analysis *)
+(*Environment call*)
+(* Record Type *)
+type env_call = {
+  envcall_gaslimit : uint256; (* the current invocation's gas limit *)
+  envcall_value : uint256; (* the amount of Eth sent along*)
+  envcall_data : list byte; (* the data sent along *)
+  envcall_caller : address; (* the caller's address *)
+  envcall_timestamp : uint256; (* the timestamp of the current block *)
+  envcall_blocknum : uint256; (* the block number of the current block *)
+  envcall_balance : address -> uint256; (* the balances of all accounts. *)
+}
+
+(* invariant can be added in appropriate position *)
+invariant {self.callenv_balance >= 0}
+
+(* The contract calls other accounts and the environment returns some information *)
+(* Environment return *)
+type env_return = { 
+  return_data : list byte; (* the returned data *)
+  return_balance : address -> uint256 (* the balance of all accounts at the moment of the return*)
+}
+
+(* when the contract returns, its type is also needed *)
+
+
+(* Environment Action *)
+type env_action =
+| EnvironmentCall env_call (* the environment calls into the account *)
+| EnvironmentRet env_return (* the environment returns back to the account *)
+| EnvironmentFail (* the environment fails back to the account. *)
+
+(*Contract actions*)
+(* Call an account *)
+type call_args = {
+  callarg_gas : uint256; (* The portion of the remaining gas that the callee is allowed to use *)
+  callarg_code : address; (* The code that executes during the call *)
+  callarg_recipient : address; (* The recipient of the call, whose balance and the storage are modified. *)
+  callarg_value : uint256; (* The amount of Eth sent along *)
+  callarg_data : list byte; (* The data sent along *)
+  callarg_output_begin : uint256; (* The beginning of the memory region where the output data should be written. *)
+  callarg_output_size : uint256; (* The size of the memory regions where the output data should be written. *)
+}
+
+(* Deployment or creation of contract *)
+type create_args = {
+  createarg_value : uint256; (* The value sent to the account *)
+  createarg_code : list byte; (* The code that deploys the runtime code. *)
+}
+
+(* Failing*)
+type failure_reason =
+| OutOfGas
+| TooDeepStack
+| TooLowStack
+| InvalidJumpDestination
+| ShouldNotHappen
+
+type contract_action =
+| ContractCall call_args (* calling an account *)
+| ContractDelegateCall call_args (* calling some code to run on behalf of the contract *)
+| ContractCreate create_args (* deploying a smart contract *)
+| ContractFail list failure_reason (* failing back to the caller *)
+| ContractSuicide address (* destroying itself and returning back to the caller *)
+| ContractReturn list byte (* normally returning back to the caller *)
+
+
+
+(* Instruction is a function that takes environments and modifies some parts of them *)
+(* The available information about the block *)
+type block_info = {
+  block_blockhash : uint256 -> uint256; (* this captures the whole BLOCKHASH operation *)
+  block_coinbase : address; (* the miner who validates the block *)
+  block_timestamp : uint256;
+  block_number : uint256; (* the blocknumber of the block *)
+  block_difficulty : uint256;
+  block_gaslimit : uint256; (* the block gas imit *)
+}
+
+(* A log entry *)
+type log_entry = {
+  log_addr   : address;
+  log_topics : list uint256;
+  log_data   : list byte;
+}
+
+(* The variable context contains the changeable information. *)
+type variable_ctx = {
+  vctx_stack : list uint256;
+  vctx_memory : memory;
+  vctx_memory_usage : int; (* the current memory usage *)
+  vctx_storage : storage;
+  vctx_pc : int; (* the program counter *)
+  vctx_balance : address -> uint256; (* balances of all accounts *)
+  vctx_caller : address; (* the caller's address *)
+  vctx_value_sent : uint256; (* the amount of Eth sent along the current invocation *)
+  vctx_data_sent : list byte; (* the data sent along the current invocation *)
+  vctx_storage_at_call : storage; (* the storage content at the invocation*)
+  vctx_balance_at_call : address -> uint256; (* the balances at the invocation *)
+  vctx_origin : address; (* the external account that started the current transaction *)
+  vctx_ext_program : address -> program; (* the codes of all accounts *)
+  vctx_block : block_info; (* the current block *)
+  vctx_gas : integer; (* remaining gas before the instruction *)
+  vctx_account_existence : address -> bool;
+  vctx_touched_storage_index : list uint256;
+  vctx_logs : list log_entry; (* stored newest first *)
+  vctx_refund : int;
+  vctx_gasprice : uint256;
+}
+
+(* The constant context contains the stable information. *)
+type constant_ctx = {
+  cctx_program : program; (* the code in the account under analysis. *)
+  cctx_this : address; (* the address of the account under analysis. *)
+  cctx_hash_filter : list byte -> bool;
+}
+
+(* The Result of an Instruction *)
+(* Result of program execution is results of its instructions *)
+type instruction_result =
+| InstructionContinue variable_ctx (* the execution should continue. *)
+| InstructionToEnvironment
+    contract_action   (* the contract's action *)
+  * variable_ctx      (* the last variable env *)
+  * option (int * int) (* the variable environment to return to *) (* Question here about the return thing *)
+(* the execution stops; either for the moment just call out another account, or finish the current invocation *)
+
+
+(* When the contract fails, the result of the instruction looks like this: *)
+let instruction_failure_result (v: variable_ctx) (reasons: list failure_reason): instruction_result =
+  InstructionToEnvironment (ContractFail reasons) v None
+
+(* When the contract returns, the result of the instruction looks like this: *)
+let instruction_return_result (x: list byte)  (v: variable_ctx): instruction_result =
+  InstructionToEnvironment (ContractReturn x) v None
+
+(* Auxiliary Functions for defining EVM operations *)  
+
+(* Gas inst is modeled to be a value dependent on the variable environment *)
+(* This is not a problem when analyzing a single invocation of a loopless contract *)
+(* For futher possible use, gas accounting should be complete. *)
+
+
+let gas (v: variable_ctx): uint256  = word256FromInt v.vctx_gas
+
+(* M function in the yellow paper for updating the memory usage counter. *)
+let Memo_use (s: int) (f: uint256) (l:uint256) : int =
+  if l = 0 then s else max s ((uint f + uint l + 31) div 32) (* uint256 to uint maybe needed, also the max support needs to be checked *)
+
+(* Updating a balance of a single account:  *)
+let update_balance (a: address) (f: uint256 -> uint256) (orig: address -> uint256) (x: address): uint256 = 
+if x = a then f (orig a) else orig x 
+
+(* Popping stack elements: *)
+let vctx_pop_stack (n: nat) (v: variable_ctx) : variable_ctx =
+{ v with vctx_stack =  reverse (tl (reverse v.vctx_stack)) } (* expr record: { (lqualid = expr;)+ };  
+{expr with (lqualid = expr;)+}; Record field update: { term with term-field+} *)
+
+(* Updating the storage at an index: *)
+let vctx_update_storage (idx: uint256) (vall: uint256) (v: variable_ctx) : variable_ctx =
+  {v with vctx_storage = (fun x -> if x = idx then vall else v.vctx_storage x) }
+
+(* Peeking the next instruction: *)
+let vctx_next_instruction (v: variable_ctx) (c: constant_ctx) : option inst  =
+  match c.cctx_program.program_content v.vctx_pc with
+  | Some i -> Some i
+  | None -> Some (Account STOP)
+  end
+
+(* Advancing the program counter: *)
+val vctx_advance_pc :  ->  -> 
+let vctx_advance_pc (c: constant_ctx) (v: variable_ctx): variable_ctx =
+{ v with vctx_pc =
+     (match vctx_next_instruction v c with
+     | None -> v.vctx_pc + 1
+     | Some inst -> v.vctx_pc + integerFromInt (inst_size inst) end) }
+
+(* No-op, which just advances the program counter: *)
+val stack_0_0_op : variable_ctx -> constant_ctx -> instruction_result
+let stack_0_0_op v c = InstructionContinue (vctx_advance_pc c v)
+
+(* A general pattern of operations that pushes one element onto the stack:  *)
+val stack_0_1_op : variable_ctx -> constant_ctx -> w256 -> instruction_result
+let stack_0_1_op v c w =
+   InstructionContinue (vctx_advance_pc c <| v with vctx_stack = w :: v.vctx_stack |>)
+
+
+(* A general pattern of operations that transforms the topmost element of the stack: *)
+val stack_1_1_op : variable_ctx -> constant_ctx -> (w256 -> w256) -> instruction_result
+let stack_1_1_op v c f = match v.vctx_stack with
+  | Nil -> instruction_failure_result v [TooShortStack]
+  | h :: t -> InstructionContinue (vctx_advance_pc c <| v with vctx_stack = f h :: t |>)
+end
+
+(* A general pattern of operations that take two words and produce one word: *)
+val stack_2_1_op : variable_ctx -> constant_ctx -> (w256 -> w256 -> w256) -> instruction_result
+let stack_2_1_op v c f = match v.vctx_stack with
+ | operand0 :: operand1 :: rest ->
+       InstructionContinue
+         (vctx_advance_pc c <| v with vctx_stack = f operand0 operand1 :: rest |>)
+  | _ -> instruction_failure_result v [TooShortStack]
+end
+
+(* A general pattern of operations that take three words and produce one word: *)
+val stack_3_1_op : variable_ctx -> constant_ctx -> (w256 -> w256 -> w256 -> w256) -> instruction_result
+let stack_3_1_op v c f = match v.vctx_stack with
+ | operand0 :: operand1 :: operand2 :: rest ->
+       InstructionContinue
+         (vctx_advance_pc c <| v with vctx_stack = f operand0 operand1 operand2 :: rest |>)
+ | _ -> instruction_failure_result v [TooShortStack]
+end

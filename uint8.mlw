@@ -1,0 +1,16 @@
+module UInt8
+	use mach.int.Unsigned
+	type uint8
+	constant max_uint8: int = 0xff
+	clone export mach.int.Unsigned with
+		type t = uint8,
+		constant max = max_uint8
+	function uint8_to_int (x: uint8): int= uint8'int x
+	val to_int (n: uint8) : int
+	 ensures {result = n}
+	val of_int (n: int): uint8 
+	requires { in_bounds n }
+	ensures { result = n } 
+
+	function uint8_of_int (x: int): uint8
+end
