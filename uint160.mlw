@@ -6,9 +6,9 @@ module UInt160
 		type t = uint160,
 		constant max = max_uint160
 	function uint160_to_int (x: uint160): int
-	val to_int (n: uint160) : int
+	val uint160_to_int (n: uint160) : int
 	 ensures {result = n}
-	val of_int (n: int): uint160 
+	val uint160_of_int (n: int): uint160 
 	requires { in_bounds n }
 	ensures { result = n } 
 

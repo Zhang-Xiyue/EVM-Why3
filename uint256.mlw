@@ -7,9 +7,9 @@ module UInt256
 		type t = uint256,
 		constant max = max_uint256
 	function uint256_to_int (x: uint256): int
-	val to_int (n: uint256) : int
+	val uint256_to_int (n: uint256) : int
 	 ensures {result = n}
-	val of_int (n: int): uint256 
+	val uint256_of_int (n: int): uint256 
 	requires { in_bounds n }
 	ensures { result = n } 
 
