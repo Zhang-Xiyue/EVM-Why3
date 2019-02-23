@@ -339,24 +339,25 @@ let stack_inst_num (inst: stack_inst): st_num = match inst with
 end
 
 (* The 16 insts for duplicating a stack element, take a stack element and copy it on top of the stack *)
-type dup_inst = uint4
+type dup_inst = uint4 (* ??? Repeated representation as swap *)
 
 let dup_inst_opcode (inst: dup_inst): byte =
 (uint8_of_int (uint4_to_int inst) + 0X80) (* ??? add operation confirmation in uint8, also the byte representation is involved *)
 
 let dup_inst_num (inst: dup_inst): st_num =
 (uint4_to_int inst, (uint4_to_int inst) + 1 )
+
 (* The 16 insts for taking a stack element and duplicate it on top of the stack.*)
 type swap_inst = uint4
 
 let swap_inst_opcode (inst: swap_inst): byte =
-  (word8FromInt (word4ToUInt m) + 0X90)
+  (uint8_of_int (uint4_to_int inst) + 0X90)
 
 let swap_inst_num (inst: swap_inst): st_num =
-(word4ToUInt m + 1, word4ToUInt m + 1)
+((uint4_to_int inst) + 1, (uint4_to_int inst) + 1)
 
-(* Logging Instructions *)
-(* Instructions for logging events with different number of arguments. *)
+(* Logging Operations *)
+(* The state change is to append an additional log entry on to the substate’s log series *)
 type log_inst =
 | LOG0
 | LOG1
@@ -380,8 +381,8 @@ let log_inst_num (inst: log_inst): st_num = match inst with
 | LOG4 -> (6, 0)
 end
 
-(* Instructions for interaction about accounts' code *)
-type account_inst =
+(* System Operations *)
+type system_inst =
   | STOP (* finishing the execution normally, with the empty return data *)
   | CREATE (* deploying some code in an account *)
   | CALL (* calling (i.e. sending a message to) an account *)
@@ -389,45 +390,45 @@ type account_inst =
   | RETURN (* finishing the execution normally with data *)
   | DELEGATECALL (* calling into this account, the executed code can be some other account's
                        but the sent value and the sent data are unchanged. *)
-  | SUICIDE (* send all remaining Eth balance to the specified account, *)
+  | SELFDESTRUCT (* send all remaining Eth balance to the specified account, *)
             (* finishing the execution normally, and flagging the current account for deletion *)
 
-let account_inst_opcode (inst: account_inst): byte = match inst with
+let system_inst_opcode (inst: system_inst): byte = match inst with
 | STOP -> 0X00
 | CREATE -> 0Xf0
 | CALL -> 0Xf1
 | CALLCODE -> 0Xf2
 | RETURN -> 0Xf3
 | DELEGATECALL -> 0Xf4
-| SUICIDE -> 0Xff
+| SELFDESTRUCT -> 0Xff
 end
 
-let account_inst_num (inst: account_inst): st_num = match inst with
+let system_inst_num (inst: system_inst): st_num = match inst with
 | STOP         -> (0, 0)
 | CREATE       -> (3, 1)
 | CALL         -> (7, 1)
 | CALLCODE     -> (7, 1)
 | RETURN       -> (2, 0)
 | DELEGATECALL -> (6, 1)
-| SUICIDE      -> (1, 0)
+| SELFDESTRUCT -> (1, 0)
 end
 
 (* Instruction Set *)
-(* The previous inductive sets above are here combined into a single type. *)
-type inst =
-  | Unknown byte
-  | Bits bits_inst
-  | Sarith sign_arith_inst
-  | Arith arith_inst
-  | Info info_inst
-  | Dup dup_inst
-  | Memory memory_inst
-  | Storage storage_inst
-  | Pc pc_inst
-  | Stack stack_inst
-  | Swap swap_inst
-  | Log log_inst
-  | Account account_inst
+(* The previous operation sets above are here combined into a single type. *)
+type instruction =
+  | Unknown of byte
+  | Bits of bits_inst
+  | Sarith of sign_arith_inst
+  | Arith of arith_inst
+  | Info of info_inst
+  | Dup of dup_inst
+  | Memory of memory_inst
+  | Storage of storage_inst
+  | Pc of pc_inst
+  | Stack of stack_inst
+  | Swap of swap_inst
+  | Log of log_inst
+  | System of system_inst
 
 (*let to_list m = 
 match m with
@@ -436,7 +437,7 @@ match m with
 end*)
 
 
-let inst_opcode (ins: inst): list byte = match ins with
+let inst_opcode (inst: instruction): list byte = match inst with
 | Unknown byte -> [byte]
 | Bits b -> [bits_inst_opcode b]
 | Sarith s -> [sign_arith_inst_opcode s]
@@ -449,11 +450,11 @@ let inst_opcode (ins: inst): list byte = match ins with
 | Stack s -> stack_inst_opcode s
 | Swap s -> [swap_inst_opcode s]
 | Log l -> [log_inst_opcode l]
-| Account m -> [account_inst_opcode m]
+| System m -> [system_inst_opcode m]
 end
 
 
-let inst_stack_num (ins: inst): st_num = match ins with
+let inst_stack_num (inst: instruction): st_num = match inst with
 | Bits b -> bit_inst_num b
 | Sarith s -> sign_arith_inst_num s
 | Arith a -> arith_inst_num a
@@ -465,9 +466,10 @@ let inst_stack_num (ins: inst): st_num = match ins with
 | Stack s -> stack_inst_num s
 | Swap s -> swap_inst_num s
 | Log l -> log_inst_num l
-| Account m -> account_inst_num m
+| System m -> system_inst_num m
 end
 
+(* ???? Continue from here *)
 (* Take the size of an opcode to ease the parsing of hex representation of EVM code *)
 
 let inst_size (ins: inst): int = intFromNat (length (inst_opcode ins))
