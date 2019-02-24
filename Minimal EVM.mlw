@@ -31,8 +31,8 @@ encapsulated as a direct function, e.g. to_int and of_int to a function *)
 
 (* Enumeration type*)
 type memory_content = 
-   | Item8
-   | Item256
+   | Item8 of uint256
+   | Item256 of uint256
 type memory = machword -> option memory_content
 type stack = list uint256
 type storage = machword -> machword (* machine word -> machine word *)
@@ -620,6 +620,9 @@ let rec read_memoContent (idx: uint256) (n: int) (memo: memory): list memory_con
     | m + 1 -> memo idx :: read_memoContent (idx + 1) m memo
   end
 
+let update_memory_content (m: memory) (idx: uint256) (cont: option memory_content): memory =
+   fun addr -> if addr = idx then cont else (m addr)
+
 (* Auxiliary functions for stack *)
 
 let push_stack (s: stack) (ele: machword): stack = ele :: s
@@ -746,12 +749,22 @@ let interpreter: machine_state -> machine_state =
                          if con = uint256_of_int 0 then inc_pc {m with mac_stack = s'' }
                          else { m with mac_pc = (m.jumpmap dest) }
                     | _, _ -> { m with mac_status = (Error OutOfStack) } 
+                    end
     | Pc JUMPDEST -> { m with m.mac_pc = m.mac_pc + 1 }
-
-                               
-                                                          
-                                                          
-   end
+    | Memory MSTORE -> let (s', offset) = pop_stack m.mac_stack in 
+                       let (s'', cont) = pop_stack s' in
+                       inc_pc
+                       match offset, cont with
+                       | Some o, Some c -> {m with mac_stack = s''; mac_memory = update_memory_content m.mac_memory o (Some (Item256 c))} 
+                       | _, _ -> { m with mac_status = (Error OutOfStack) } 
+                       end
+    | Memory MSTORE8 -> let (s', offset) = pop_stack m.mac_stack in 
+                       let (s'', cont) = pop_stack s' in
+                       inc_pc
+                       match offset, cont with
+                       | Some o, Some c -> {m with mac_stack = s''; mac_memory = update_memory_content m.mac_memory o (Some (Item8 c))} 
+                       | _, _ -> { m with mac_status = (Error OutOfStack) } 
+                       end
 
 (* CALLDATALOAD for stack *)
-(* MLOAD MSTORE MSTORE8 CALLDATACOPY for memory *)
+(* MLOAD CALLDATACOPY for memory *)
