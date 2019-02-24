@@ -38,13 +38,15 @@ type stack = list uint256
 type storage = machword -> machword (* machine word -> machine word *)
 
 (* EVM status *)
-(* ??? *)
+(* TODO *)
 
 type error =
-| OutOfGas
-| TooDeepStack
-| TooLowStack
-| InvalidJumpDestination
+    | OutOfBounds
+    | OutOfGas
+    | OutOfStack
+    | OutOfCode
+    | OutOfData
+    | InvalidOpcode
 
 type return_type =
   | Normal of uint256
@@ -69,7 +71,7 @@ type bits_inst =
     | BIT_NOT
     | BYTE (* take one byte out of a word *)
 
-(* ??? WHy the type of 0X16 and etc. is byte, maybe not needed *)
+
 let bit_inst_opcode (inst: bits_inst): byte =
     match inst with 
         | BIT_AND -> 0X16
@@ -303,10 +305,11 @@ end
 
 type stack_inst =
   | POP (* throw away the top element of the stack *)
-  | PUSH_N of list byte (* pushing an element to the stack *) (* ??? Confirm this type representation "of" which is right in ocaml *)
+  | PUSH_N of list byte (* pushing an element to the stack *) (* TODO Confirm this type representation "of" which is right in ocaml *)
   | CALLDATALOAD (* push a word to the stack which is taken from the caller's data *)
 
 exception PushError
+
 let stack_inst_opcode (inst: stack_inst): list byte 
 raises {PushError -> False}
 = match inst with
@@ -324,10 +327,10 @@ let stack_inst_num (inst: stack_inst): st_num = match inst with
 end
 
 (* The 16 insts for duplicating a stack element, take a stack element and copy it on top of the stack *)
-type dup_inst = uint4 (* ??? Repeated representation as swap *)
+type dup_inst = uint4
 
 let dup_inst_opcode (inst: dup_inst): byte =
-(uint8_of_int (uint4_to_int inst) + 0X80) (* ??? add operation confirmation in uint8, also the byte representation is involved *)
+(uint8_of_int (uint4_to_int inst) + 0X80) 
 
 let dup_inst_num (inst: dup_inst): st_num =
 (uint4_to_int inst, (uint4_to_int inst) + 1 )
@@ -400,6 +403,7 @@ end
 
 (* Instruction Set *)
 (* The previous operation sets above are here combined into a single type. *)
+
 type instruction =
   | Unknown of byte
   | Bits of bits_inst
