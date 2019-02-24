@@ -49,14 +49,14 @@ type error =
     | InvalidOpcode
 
 type return_type =
-  | Normal of uint256
-  | Create of uint256
+  | Normal uint256
+  | Create uint256
   | Revert
 
 type vmstatus =
   | Running
-  | Error of error
-  | Finish of return_type
+  | Error error
+  | Finish return_type
 
 (* EVM Operations *)
 
@@ -65,28 +65,28 @@ type st_num = int * int
 
 (* Bits *)
 type bits_inst =
-    | BIT_AND  
-    | BIT_OR
-    | BIT_XOR
-    | BIT_NOT
-    | BYTE (* take one byte out of a word *)
+    | AND  
+    | OR
+    | XOR
+    | NOT
+    | BYTE (* Retrieve single byte from word *)
 
 
 let bit_inst_opcode (inst: bits_inst): byte =
     match inst with 
-        | BIT_AND -> 0X16
-        | BIT_OR -> 0X17
-        | BIT_XOR -> 0X18
-        | BIT_NOT -> 0X19
+        | AND -> 0X16
+        | OR -> 0X17
+        | XOR -> 0X18
+        | NOT -> 0X19
         | BYTE -> 0X1a
     end
 
 let bit_inst_num (inst: bits_inst): st_num =
     match inst with 
-        | BIT_AND -> (2, 1)
-        | BIT_OR -> (2, 1)
-        | BIT_XOR -> (2, 1)
-        | BIT_NOT -> (1, 1)
+        | AND -> (2, 1)
+        | OR -> (2, 1)
+        | XOR -> (2, 1)
+        | NOT -> (1, 1)
         | BYTE -> (2, 1)
     end
 
@@ -96,15 +96,15 @@ type sign_arith_inst =
 | SMOD
 | SLT
 | SGT
-| SEXTEND
+| SIGNEXTEND (* Extend length of two's complement signed integer *)
 
 let sign_arith_inst_opcode (inst: sign_arith_inst): byte =
 match inst with 
-| SDIV -> 0X05
+| SDIV -> 0X05 (*  Signed integer division operation (truncated) *)
 | SMOD -> 0X07
 | SLT -> 0X12
 | SGT -> 0X13
-| SEXTEND -> 0X0b 
+| SIGNEXTEND -> 0X0b 
 end   
 
 let sign_arith_inst_num (inst: sign_arith_inst): st_num =
@@ -113,7 +113,7 @@ match inst with
 | SMOD -> (2, 1)
 | SLT -> (2, 1)
 | SGT -> (2, 1)
-| SEXTEND -> (2, 1)
+| SIGNEXTEND -> (2, 1)
 end   
           
 (* Unsigned Arithmetics *)
@@ -123,12 +123,12 @@ type arith_inst =
 | SUB
 | DIV
 | MOD
-| ADDMOD
-| MULMOD
-| EXP
-| ARITH_LT
-| ARITH_GT
-| ARITH_EQ
+| ADDMOD (*  Modulo addition operation. *)
+| MULMOD (*  Modulo multiplication operation. *)
+| EXP (* Exponential operation. *)
+| LT
+| GT
+| EQ
 | ISZERO
 | SHA3
 
@@ -170,19 +170,22 @@ end
 type info_inst =
 | ADDRESS
 | BALANCE
-| ORIGIN (* The external account that started the transaction *)
+| ORIGIN (* Get execution origination address.*)
 | CALLER
 | CALLVALUE
 | CALLDATASIZE
 | CODESIZE
-| GASPRICE
+| GASPRICE (* Get price of gas in current environment *)
 | EXTCODESIZE (* Size of the code of a specified account *)
-| BLOCKHASH
-| COINBASE (* The address of the miner that validates the current block *)
+| EXTCODECOPY (* Copy an account's code to memory *)
+| RETURNDATASIZE (* Get size of output data from the previous call from the current environment *)
+| RETURNDATACOPY (* Copy output data from the previous call to memory *)
+| BLOCKHASH (* Get the hash of one of the 256 most recent complete blocks. *)
+| COINBASE (* Get the block’s beneficiary address. *)
 | TIMESTAMP
 | NUMBER
-| DIFFICULTY
-| GASLIMIT
+| DIFFICULTY (* Get the block's difficulty *)
+| GASLIMIT (*  Get the block's gas limit *)
 | GAS
 
 
@@ -197,6 +200,9 @@ match inst with
 | CODESIZE -> 0X38
 | GASPRICE -> 0X3a
 | EXTCODESIZE -> 0X3b
+| EXTCODECOPY  -> 0X3c
+| RETURNDATASIZE -> 0X3d
+| RETURNDATACOPY -> 0X3e
 | BLOCKHASH -> 0X40
 | COINBASE -> 0X41 
 | TIMESTAMP -> 0X42
@@ -217,6 +223,9 @@ match inst with
 | CODESIZE -> (0, 1)
 | GASPRICE -> (0, 1)
 | EXTCODESIZE -> (1, 1)
+| EXTCODECOPY  -> (4, 0) 
+| RETURNDATASIZE -> (0, 1)
+| RETURNDATACOPY -> (3, 0)
 | BLOCKHASH -> (1, 1)
 | COINBASE -> (0, 1) 
 | TIMESTAMP -> (0, 1)
@@ -238,9 +247,9 @@ type memory_inst =
 
 let memory_inst_opcode (inst: memory_inst) : byte =
 match inst with 
-| MLOAD -> 0X51 
-| MSTORE -> 0X52 
-| MSTORE8 -> 0X53 
+| MLOAD -> 0X51 (* Load word from memory *)
+| MSTORE -> 0X52 (* Save word to memory *)
+| MSTORE8 -> 0X53 (* Save byte to memory *)
 | MSIZE -> 0X59 (* the size of the currently used part of the memory *)
 | CALLDATACOPY -> 0X37 (* copy the caller's data to the memory *)
 | CODECOPY -> 0X39(* copy part of the currently running code to the memory *)
@@ -252,7 +261,7 @@ match inst with
 | MLOAD -> (1, 1) 
 | MSTORE -> (2, 0) 
 | MSTORE8 -> (2, 0) 
-| MSIZE -> (0, 1)(* the size of the currently used part of the memory *)
+| MSIZE -> (0, 1)(* Copy code running in current environment to memory *)
 | CALLDATACOPY -> (3, 0) (* copy the caller's data to the memory *)
 | CODECOPY -> (3, 0)(* copy part of the currently running code to the memory *)
 | EXTCODECOPY -> (4, 0)(* copy part of the code of a specified account *)
@@ -261,32 +270,32 @@ end
 
 (* Storage Operations *)
 type storage_inst =
-| SLOAD (* Read one word from the storage *)
-| SSTORE (* Write one word to the storage *)
+| SLOAD (*Load word from the storage *)
+| SSTORE (* Save word to the storage *)
 
 let storage_inst_opcode (inst: storage_inst): byte = 
 match inst with 
-| SLOAD -> 0X54(* Read one word from the storage *)
-| SSTORE -> 0X55 (* Write one word to the storage *)
+| SLOAD -> 0X54 (*Load word from the storage *)
+| SSTORE -> 0X55 (* Save word to the storage *)
 end
 
 let storage_inst_num (inst: storage_inst): st_num = 
 match inst with 
-| SLOAD -> (1, 1)(* Read one word from the storage *)
-| SSTORE -> (2, 0) (* Write one word to the storage *)
+| SLOAD -> (1, 1)(*Load word from the storage *)
+| SSTORE -> (2, 0) (* Save word to the storage *)
 end
 
 (*Program Counter Operation *)
 type pc_inst =
- | JUMP (* jumping to the specified location in the code *)
- | JUMPI (* jumping to the specified location in the code if a condition is met *)
+ | JUMP (*  Alter the program counter. *)
+ | JUMPI (* Conditionally alter the program counter. *)
  | PC (* the current location in the code *)
  | JUMPDEST (* indicate jump destinations. *)
 
 let pc_inst_opcode (inst: pc_inst): byte = match inst with
 | JUMP -> 0X56
-| JUMPI -> 0X57
-| PC -> 0X58
+| JUMPI -> 0X57 (* Conditionally alter the program counter. *)
+| PC -> 0X58 
 | JUMPDEST -> 0X5b
 end
 
@@ -304,8 +313,8 @@ end
 (* The pushed value is represented by a list of bytes. *)
 
 type stack_inst =
-  | POP (* throw away the top element of the stack *)
-  | PUSH_N of list byte (* pushing an element to the stack *) (* TODO Confirm this type representation "of" which is right in ocaml *)
+  | POP (* Remove item from stack *)
+  | PUSH_N list byte (* pushing an element to the stack *) 
   | CALLDATALOAD (* push a word to the stack which is taken from the caller's data *)
 
 exception PushError
@@ -378,6 +387,8 @@ type system_inst =
   | RETURN (* finishing the execution normally with data *)
   | DELEGATECALL (* calling into this account, the executed code can be some other account's
                        but the sent value and the sent data are unchanged. *)
+  | STATICCALL (* Static message-call into an account.*)
+  | REVERT (* Halt execution reverting state changes but returning data and remaining gas. *)                      
   | SELFDESTRUCT (* send all remaining Eth balance to the specified account, *)
             (* finishing the execution normally, and flagging the current account for deletion *)
 
@@ -388,6 +399,8 @@ let system_inst_opcode (inst: system_inst): byte = match inst with
 | CALLCODE -> 0Xf2
 | RETURN -> 0Xf3
 | DELEGATECALL -> 0Xf4
+| STATICCALL -> 0Xfa
+| REVERT -> 0Xfd
 | SELFDESTRUCT -> 0Xff
 end
 
@@ -398,6 +411,8 @@ let system_inst_num (inst: system_inst): st_num = match inst with
 | CALLCODE     -> (7, 1)
 | RETURN       -> (2, 0)
 | DELEGATECALL -> (6, 1)
+| STATICCALL   -> (6, 1)
+| REVERT       -> (2, 0)
 | SELFDESTRUCT -> (1, 0)
 end
 
@@ -405,19 +420,19 @@ end
 (* The previous operation sets above are here combined into a single type. *)
 
 type instruction =
-  | Unknown of byte
-  | Bits of bits_inst
-  | Sarith of sign_arith_inst
-  | Arith of arith_inst
-  | Info of info_inst
-  | Dup of dup_inst
-  | Memory of memory_inst
-  | Storage of storage_inst
-  | Pc of pc_inst
-  | Stack of stack_inst
-  | Swap of swap_inst
-  | Log of log_inst
-  | System of system_inst
+  | Unknown byte
+  | Bits bits_inst
+  | Sarith sign_arith_inst
+  | Arith arith_inst
+  | Info info_inst
+  | Dup dup_inst
+  | Memory memory_inst
+  | Storage storage_inst
+  | Pc pc_inst
+  | Stack stack_inst
+  | Swap swap_inst
+  | Log log_inst
+  | System system_inst
 
 (*let to_list m = 
 match m with
@@ -475,20 +490,20 @@ let Ghigh: int = 10
 let Gextcode: int = 700 (* Amount of gas to pay for operations of the set Wextcode *)
 let gas_of_Wzero (inst: instruction) : int =
   let Gas = match inst with
-    |STOP
-    |RETURN
-    |REVERT -> 0
+    | System STOP
+    | System RETURN
+    | System REVERT -> 0
     end
   in Gas
 
 let gas_of_Wlow (inst: instruction) : int =
   let Gas = match inst with
-    |MUL
-    |DIV
-    |SDIV
-    |MOD
-    |SMOD
-    |SIGNEXTEND -> 0
+    | Arith MUL
+    | Arith DIV
+    | Sarith SDIV
+    | Arith MOD
+    | Sarith SMOD
+    | Sarith SIGNEXTEND-> 0
     end
   in Gas   
 
@@ -568,29 +583,13 @@ type machine_state = {
   mac_memory_usage : int; (* the current memory usage *) 
   mac_gas : int; (* the remaining gas *)
   mac_insts : list instruction  (* Slight changes *)
-  jumpmap : uint256 -> uint
+  mac_jumpmap : uint256 -> uint
 }
 
 
 
 (* The result of a program execution is the results of its instructions contained in the program *)
 
-(* Move to the processor part *)
-(* The next instruction *)
-let next_instruction (m: machine_state) : option instruction  =
-  match m.mac_pc with
-  | Some i -> Some i
-  | None -> Some (System STOP)
-  end
-
-(* Advancing the program counter: *)
-let advance_pc (m: machine_state) : machine_state =
-{ m with m.mac_pc =
-     (match next_instruction m with
-     | None -> m.mac_pc + 1
-     | Some inst -> m.mac_pc + (inst_size inst) 
-     end) 
-}
 
 
 
@@ -631,6 +630,12 @@ let pop_stack (s: stack): stack * option machword  =
     | _ -> (s, None) 
     end
 
+let swap_stack (s: stack) (i: int): stack =
+     let ele = List.nth i s in
+        let top = List.nth 0 s in 
+        s[i] <- top
+        s[0] <- ele
+
 (* Machine state update *)
 
 let update_stack (st: stack) (m: machine_state) : machine_state =
@@ -644,11 +649,11 @@ let update_pc (pc: int) (m: machine_state) : machine_state =
 
 let update_status (vst: vmstatus) (m: machine_state) : machine_state =
 { m with mac_status = vst }  
-
-
 (* Auxiliay function for the slight change in machine state to get the opcodes *)
 
-let get_inst (mac_st: machine_state) =
+let inc_pc (m: machine_state): machine_state =
+  update_pc (m.mac_pc + 1) m
+let get_inst (mac_st: machine_state): instruction =
   match mac_st with 
   | _ _ pc _ _ _ insts _ -> List.nth pc insts 
   end
@@ -656,9 +661,97 @@ let get_inst (mac_st: machine_state) =
 (* Transformation semantics for different insturctions *)
 
 let interpreter: machine_state -> machine_state =
-   fun mac_st -> 
-   let inst = get_inst mac_st in
+   fun m -> 
+   let inst = get_inst m in
    match inst with 
-   | System STOP -> update_status mac_st (Finish (Normal (uint256_of_int 0)))
+    | System STOP -> {m with mac_status = (Finish (Normal (uint256_of_int 0)))}
+    | Arith ADD -> let (st', a) = (pop_stack (m.mac_stack)) in 
+                   let (st'', b) = ( pop st') in 
+                   inc_pc
+                   match a, b with 
+                   | Some a', Some b' -> {m with mac_stack = push_stack s'' (a + b)}
+                   | _, _ -> {m with mac_status = (Error OutOfStack)}
+                   end
+    | Arith MUL -> let (st', a) = (pop_stack (m.mac_stack)) in 
+                   let (st'', b) = ( pop st') in 
+                   inc_pc
+                   match a, b with 
+                   | Some a', Some b' -> {m with mac_stack = push_stack s'' (a * b)}
+                   | _, _ -> {m with mac_status = (Error OutOfStack)}
+                   end
+    | Arith SUB -> let (st', a) = (pop_stack (m.mac_stack)) in 
+                   let (st'', b) = (pop st') in 
+                   inc_pc
+                   match a, b with 
+                   | Some a', Some b' -> {m with mac_stack = push_stack s'' (a - b)}
+                   | _, _ -> {m with mac_status = (Error OutOfStack)}
+                   end
 
+    | Arith DIV -> let (st', a) = (pop_stack (m.mac_stack)) in 
+                   let (st'', b) = ( pop st') in 
+                   inc_pc
+                   match a, b with 
+                   | Some a', Some b' -> {m with mac_stack = push_stack s'' (div a b)}
+                   | _, _ -> {m with mac_status = (Error OutOfStack)}
+                   end  
+    | Arith MOD -> let (st', a) = (pop_stack (m.mac_stack)) in 
+                   let (st'', b) = ( pop st') in 
+                   inc_pc
+                   match a, b with 
+                   | Some a', Some b' -> {m with mac_stack = push_stack s'' (mod a b)}
+                   | _, _ -> {m with mac_status = (Error OutOfStack)}
+                   end     
+    | Arith EXP -> let (st', a) = (pop_stack (m.mac_stack)) in 
+                   let (st'', b) = ( pop st') in 
+                   inc_pc
+                   match a, b with 
+                   | Some a', Some b' -> {m with mac_stack = push_stack s'' (power a b)}
+                   | _, _ -> {m with mac_status = (Error OutOfStack)}
+                   end  
+    | Arith LT -> let (st', a) = (pop_stack (m.mac_stack)) in 
+                   let (st'', b) = ( pop st') in 
+                   inc_pc
+                   match a, b with 
+                   | Some a', Some b' -> {m with mac_stack = push_stack s'' (if a' < b' then (uint256_of_int 1) else (uint256_of_int 0) )
+                   | _, _ -> {m with mac_status = (Error OutOfStack)}
+                   end   
+    | Stack POP -> let (st', a) = pop_stack (m.mac_stack) in 
+                   inc_pc
+                   match a with
+                   | Some _ -> { m with mac_stack = s' } 
+                   | None -> { m with mac_status = (Error OutOfStack) } 
+                   end
+    | Stack PUSH_N a -> inc_pc { m with mac_stack = (push_stack m.mac_stack  a) } 
+    | Dup i     -> let ele = nth (i - 1) m.mac_stack in 
+                  inc_pc
+                  match ele with
+                  | Some a -> { m with mac_stack = push_stack m.mac_stack a }
+                  | None -> { m with mac_status = (Error OutOfStack) }
+                  end
+    | Swap i     -> let s = swap_stack m.mac_stack i in 
+                  inc_pc
+                  match s with
+                  | Some a -> { m with mac_stack = s }
+                  | None  ->  { m with mac_status = (Error OutOfStack) }
+                  end
+    | Pc JUMP    -> let (s', dest) = pop_stack m.mac_stack in 
+                    match dest with 
+                    | Some a -> {m with mac_stack = s'; mac_jumpmap = a
+                    | None -> { m with mac_status = (Error OutOfStack) }
+                    end
+    | Pc JUMPI   -> let (s', dest) = pop_stack m.mac_stack in
+                    let (s'', con) = pop_stack m.mac_stack in
+                    match dest, con with 
+                    | Some dest, Some con -> 
+                         if con = uint256_of_int 0 then inc_pc {m with mac_stack = s'' }
+                         else { m with mac_pc = (m.jumpmap dest) }
+                    | _, _ -> { m with mac_status = (Error OutOfStack) } 
+    | Pc JUMPDEST -> { m with m.mac_pc = m.mac_pc + 1 }
+
+                               
+                                                          
+                                                          
    end
+
+(* CALLDATALOAD for stack *)
+(* MLOAD MSTORE MSTORE8 CALLDATACOPY for memory *)

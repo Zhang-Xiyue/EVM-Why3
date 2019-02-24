@@ -1,0 +1,10 @@
+use int.Int
+type answer =
+| Valid
+| Invalid
+| Timeout
+| OutOfMemory
+| StepLimitExceeded
+| Unknown of int
+| Failure of int
+| HighFailure
