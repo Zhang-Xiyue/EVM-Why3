@@ -1,5 +1,5 @@
 module EVM
-(* Focus on machine state: Program Counter uint256, Gas Available, Stack Contents, Memory Contents which are volatile Machine state;
+(* Focus on machine state: Program Counter, Gas Available, Stack Contents, Memory Contents which are volatile Machine state;
 with the account storage as persistent world state *)
 
 (* the library support *)
@@ -10,6 +10,7 @@ use import option.Option
 use import UInt256
 use import UInt160
 use import UInt8
+use mach.int.Unsigned
 
 (* Use clear alias for commonly-used type *)
 
@@ -36,40 +37,24 @@ type memory = machword -> option memory_content
 type stack = list uint256
 type storage = machword -> machword (* machine word -> machine word *)
 
-(* Auxiliary functions for memory *)
-(* Memory initialization*)
+(* EVM status *)
+(* ??? *)
 
-let empty_memo: memory = fun addr: machword -> None
+type error =
+| OutOfGas
+| TooDeepStack
+| TooLowStack
+| InvalidJumpDestination
 
-let rec update_memoContent (memo: memory) (idx: uint256) (cont: list memory_content) (n: int): memory 
-requires {n >= 0}
-=   match n with 
-      | 0 -> memo
-      | m + 1 -> 
-        match cont with 
-          | Nil -> memo
-          | h :: t -> update_memoContent (fun addr -> if addr = idx then h else memo addr) (idx + 1) t m
-        end
-    end
+type return_type =
+  | Normal of uint256
+  | Create of uint256
+  | Revert
 
-let rec read_memoContent (idx: uint256) (n: int) (memo: memory): list memory_content
-    requires {n >= 0}
-= match n with 
-    | 0 -> Nil
-    | m + 1 -> memo idx :: read_memoContent (idx + 1) m memo
-  end
-
-(* Auxiliary functions for stack *)
-
-let push_stack (s: stack) (ele: machword): stack = ele :: s
-
-let pop_stack (s: stack): stack * option machword  = 
-    match s with
-    | ele :: (tl s) -> (tl s, Some ele)
-    | _ -> (s, None) 
-    end
-
-(* EVM status &  *)
+type vmstatus =
+  | Running
+  | Error of error
+  | Finish of return_type
 
 (* EVM Operations *)
 
@@ -469,40 +454,60 @@ let inst_stack_num (inst: instruction): st_num = match inst with
 | System m -> system_inst_num m
 end
 
-(* ???? Continue from here *)
-(* Take the size of an opcode to ease the parsing of hex representation of EVM code *)
-
-let inst_size (ins: inst): int = intFromNat (length (inst_opcode ins))
 
 
-(* Gas mechanism: Not complete *)
-(* ??? Gas calculation *)
-let gas_of (i: inst) : int =
-  let raw_gas = match i with
-    |PUSH _ -> 3
-    |POP -> 2
-    |_ -> 1
+
+
+
+(* Gas mechanism (Fee schedule) *)
+
+
+let Gzero: int = 0
+let Gbase: int = 2
+let Gverylow: int = 3
+let Glow: int = 5
+let Gmid: int = 8
+let Ghigh: int = 10
+let Gextcode: int = 700 (* Amount of gas to pay for operations of the set Wextcode *)
+let gas_of_Wzero (inst: instruction) : int =
+  let Gas = match inst with
+    |STOP
+    |RETURN
+    |REVERT -> 0
     end
-  in (raw_gas - 1)
+  in Gas
 
+let gas_of_Wlow (inst: instruction) : int =
+  let Gas = match inst with
+    |MUL
+    |DIV
+    |SDIV
+    |MOD
+    |SMOD
+    |SIGNEXTEND -> 0
+    end
+  in Gas   
+
+let Gbalance: int = 400
+let Gsload: int = 200
 let Gjumpdest: int = 1
+let Gsset: int = 20000
 
-let Gset: int = 20000
-
-let Greset: int = 5000
+let Gsreset: int = 5000
+let Gselfdestruct: int = 5000
 
 let Gcreate: int = 32000
 
 let Gcodedeposit: int = 200
-
+let Gcall: int = 700
 let Gcallvalue: int = 9000
 
 let Gcallstipend: int = 2300
 
-let Gnewaccount = 25000
+let Gnewaccount: int = 25000
 
 let Gexp: int = 10
-
+let Gexpbyte: int = 50
 let Gmemory: int = 3
 
 let Gtxcreate: int = 32000
@@ -527,415 +532,129 @@ let Gcopy: int = 3
 
 let Gblockhash: int = 20
 
+let Gquaddivisor: int = 100
 
-(* transformation result after different insturctions *)
-
-(* i.e. Program, with insts stored in a inst list, using program counters to look up insts*)
+(* !!! Move to the preprocessor part: begin *)
 
 
 type program = {
-  program_content : int -> option inst; (* changed to option to look up instructions from positions *)
+  program_content : int -> option instruction; 
   program_length  : int; (* the length of the program in bytes *)
 }
 
-(* Empty program *)
-
-
-let empty_program: program = {
-  program_content = (fun _ -> None); (* fun support in Why3, at least we could handle this with function definition *)
-  program_length = 0
-}
-
-(*(* Translate a list of instructions into a program, program content as an AVL tree. The encoding program_content_formatter needs to be implemented *)
-
-let program_of_lstInst (lst: list inst) (program_content_formatter: list inst-> (int -> option inst)): program  = {
-  program_content = program_content_formatter lst;
-  program_length = integerFromNat (length lst);
-}
-*)
-
-
-(* Program as a byte sequence *)
-(* Regard the program as a byte-indexed read-only memory *)
-let program_as_byte_Seq(p: program) (idx: nat): byte =
-   match p.program_content (intFromNat idx) with
+let inst_list_of_program(p: program) (idx: int): byte =
+   match p.program_content idx with
    | None -> 0
-   | Some inst ->
-      match List.nth 0 (inst_opcode inst) with (* Find the take index support in Why3 *)
+   | Some instruction ->
+      match List.nth 0 (inst_opcode inst) with
       | None -> 0
       | Some a -> a
       end
    end
 
-(* Now we have processed the program as byte sequence and next we need to define the result of this byte sequence
-, namely the outcome result of the program. So the  *)
-(* The variable context contains the changeable information. *)
 
-(* Representation of the volatile part *)
-type variable_ctx = {
-  vctx_stack : list uint256; (* In EVM definition, max length is 1024 *)
-  vctx_memory : memory;
-  vctx_memory_usage : int; (* the current memory usage *) 
-  vctx_storage : storage;
-  vctx_pc : int; (* the program counter *)
-  vctx_balance : address -> uint256; (* balances of all accounts *)
-  vctx_caller : address; (* the caller's address *)
-  vctx_value_sent : uint256; (* the amount of Eth sent along the current invocation *)
-  vctx_data_sent : list byte; (* the data sent along the current invocation *)
-  vctx_storage_at_call : storage; (* the storage content at the invocation*)
-  vctx_balance_at_call : address -> uint256; (* the balances at the invocation *)
-  vctx_origin : address; (* the external account that started the current transaction *)
-  vctx_ext_program : address -> program; (* the codes of all accounts *)
-  vctx_block : block_info; (* the current block *)
-  vctx_gas : integer; (* remaining gas before the instruction *)
-  vctx_account_existence : address -> bool;
-  vctx_touched_storage_index : list uint256;
-  vctx_logs : list log_entry; (* stored newest first *)
-  vctx_refund : int;
-  vctx_gasprice : uint256;
+(* Move to the preprocessor part: end *)
+
+(* Representation of the machine state part i.e. the volatile part *)
+type machine_state = {
+  mac_stack : stack ; (* In EVM definition, max length is 1024 *)
+  mac_memory : memory;
+  mac_pc : int;
+  mac_status : vmstatus
+  mac_memory_usage : int; (* the current memory usage *) 
+  mac_gas : int; (* the remaining gas *)
+  mac_insts : list instruction  (* Slight changes *)
+  jumpmap : uint256 -> uint
 }
 
-(* The constant context contains the stable information. *)
-type constant_ctx = {
-  cctx_program : program; (* the code in the account under analysis. *)
-  cctx_this : address; (* the address of the account under analysis. *)
-  cctx_hash_filter : list byte -> bool;
-}
-
-(* The Result of an Instruction *)
-(* Result of program execution is results of its instructions contained in the program *)
 
 
-(* A minimal instruction result *)
+(* The result of a program execution is the results of its instructions contained in the program *)
 
-(* A complete instruction result *)
-type instruction_result =
-| InstructionContinue variable_ctx (* the execution should continue. *)
-| InstructionToEnvironment
-    contract_action   (* the contract's action *)
-  * variable_ctx      (* the last variable env *)
-  * option (int * int) (* the variable environment to return to *) (* Question here about the return thing *)
-(* the execution stops; either for the moment just call out another account, or finish the current invocation *)
-
-
-(* When the contract fails, the result of the instruction looks like this: *)
-let instruction_failure_result (v: variable_ctx) (reasons: list failure_reason): instruction_result =
-  InstructionToEnvironment (ContractFail reasons) v None
-
-(* When the contract returns, the result of the instruction looks like this: *)
-let instruction_return_result (x: list byte)  (v: variable_ctx): instruction_result =
-  InstructionToEnvironment (ContractReturn x) v None
-
-(* Auxiliary Functions for defining EVM operations *)  
-
-(* Gas inst is modeled to be a value dependent on the variable environment *)
-(* This is not a problem when analyzing a single invocation of a loopless contract *)
-(* For futher possible use, gas accounting should be complete. *)
-
-
-let gas (v: variable_ctx): uint256  = word256FromInt v.vctx_gas
-
-(* M function in the yellow paper for updating the memory usage counter. *)
-let Memo_use (s: int) (f: uint256) (l:uint256) : int =
-  if l = 0 then s else max s ((uint f + uint l + 31) div 32) (* uint256 to uint maybe needed, also the max support needs to be checked *)
-
-(* Updating a balance of a single account:  *)
-let update_balance (a: address) (f: uint256 -> uint256) (orig: address -> uint256) (x: address): uint256 = 
-if x = a then f (orig a) else orig x 
-
-(* Popping stack elements: *)
-let vctx_pop_stack (n: nat) (v: variable_ctx) : variable_ctx =
-{ v with vctx_stack =  reverse (tl (reverse v.vctx_stack)) } (* expr record: { (lqualid = expr;)+ };  
-{expr with (lqualid = expr;)+}; Record field update: { term with term-field+} *)
-
-(* Updating the storage at an index: *)
-let vctx_update_storage (idx: uint256) (vall: uint256) (v: variable_ctx) : variable_ctx =
-  {v with vctx_storage = (fun x -> if x = idx then vall else v.vctx_storage x) }
-
-(* Peeking the next instruction: *)
-let vctx_next_instruction (v: variable_ctx) (c: constant_ctx) : option inst  =
-  match c.cctx_program.program_content v.vctx_pc with
+(* Move to the processor part *)
+(* The next instruction *)
+let next_instruction (m: machine_state) : option instruction  =
+  match m.mac_pc with
   | Some i -> Some i
-  | None -> Some (Account STOP)
+  | None -> Some (System STOP)
   end
 
 (* Advancing the program counter: *)
-val vctx_advance_pc :  ->  -> 
-let vctx_advance_pc (c: constant_ctx) (v: variable_ctx): variable_ctx =
-{ v with vctx_pc =
-     (match vctx_next_instruction v c with
-     | None -> v.vctx_pc + 1
-     | Some inst -> v.vctx_pc + integerFromInt (inst_size inst) end) }
-
-(* No-op, which just advances the program counter: *)
-val stack_0_0_op : variable_ctx -> constant_ctx -> instruction_result
-let stack_0_0_op v c = InstructionContinue (vctx_advance_pc c v)
-
-(* A general pattern of operations that pushes one element onto the stack:  *)
-val stack_0_1_op : variable_ctx -> constant_ctx -> w256 -> instruction_result
-let stack_0_1_op v c w =
-   InstructionContinue (vctx_advance_pc c <| v with vctx_stack = w :: v.vctx_stack |>)
-
-
-(* A general pattern of operations that transforms the topmost element of the stack: *)
-val stack_1_1_op : variable_ctx -> constant_ctx -> (w256 -> w256) -> instruction_result
-let stack_1_1_op v c f = match v.vctx_stack with
-  | Nil -> instruction_failure_result v [TooShortStack]
-  | h :: t -> InstructionContinue (vctx_advance_pc c <| v with vctx_stack = f h :: t |>)
-end
-
-(* A general pattern of operations that take two words and produce one word: *)
-val stack_2_1_op : variable_ctx -> constant_ctx -> (w256 -> w256 -> w256) -> instruction_result
-let stack_2_1_op v c f = match v.vctx_stack with
- | operand0 :: operand1 :: rest ->
-       InstructionContinue
-         (vctx_advance_pc c <| v with vctx_stack = f operand0 operand1 :: rest |>)
-  | _ -> instruction_failure_result v [TooShortStack]
-end
-
-(* A general pattern of operations that take three words and produce one word: *)
-val stack_3_1_op : variable_ctx -> constant_ctx -> (w256 -> w256 -> w256 -> w256) -> instruction_result
-let stack_3_1_op v c f = match v.vctx_stack with
- | operand0 :: operand1 :: operand2 :: rest ->
-       InstructionContinue
-         (vctx_advance_pc c <| v with vctx_stack = f operand0 operand1 operand2 :: rest |>)
- | _ -> instruction_failure_result v [TooShortStack]
-end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-(* Interaction between the contract and the environment *)
-
-(* The environment calls the contract under analysis *)
-(*Environment call*)
-(* Record Type *)
-type env_call = {
-  envcall_gaslimit : uint256; (* the current invocation's gas limit *)
-  envcall_value : uint256; (* the amount of Eth sent along*)
-  envcall_data : list byte; (* the data sent along *)
-  envcall_caller : address; (* the caller's address *)
-  envcall_timestamp : uint256; (* the timestamp of the current block *)
-  envcall_blocknum : uint256; (* the block number of the current block *)
-  envcall_balance : address -> uint256; (* the balances of all accounts. *)
+let advance_pc (m: machine_state) : machine_state =
+{ m with m.mac_pc =
+     (match next_instruction m with
+     | None -> m.mac_pc + 1
+     | Some inst -> m.mac_pc + (inst_size inst) 
+     end) 
 }
 
-(* invariant can be added in appropriate position *)
-invariant {self.callenv_balance >= 0}
-
-(* The contract calls other accounts and the environment returns some information *)
-(* Environment return *)
-type env_return = { 
-  return_data : list byte; (* the returned data *)
-  return_balance : address -> uint256 (* the balance of all accounts at the moment of the return*)
-}
-
-(* when the contract returns, its type is also needed *)
-
-
-(* Environment Action *)
-type env_action =
-| EnvironmentCall env_call (* the environment calls into the account *)
-| EnvironmentRet env_return (* the environment returns back to the account *)
-| EnvironmentFail (* the environment fails back to the account. *)
-
-(*Contract actions*)
-(* Call an account *)
-type call_args = {
-  callarg_gas : uint256; (* The portion of the remaining gas that the callee is allowed to use *)
-  callarg_code : address; (* The code that executes during the call *)
-  callarg_recipient : address; (* The recipient of the call, whose balance and the storage are modified. *)
-  callarg_value : uint256; (* The amount of Eth sent along *)
-  callarg_data : list byte; (* The data sent along *)
-  callarg_output_begin : uint256; (* The beginning of the memory region where the output data should be written. *)
-  callarg_output_size : uint256; (* The size of the memory regions where the output data should be written. *)
-}
-
-(* Deployment or creation of contract *)
-type create_args = {
-  createarg_value : uint256; (* The value sent to the account *)
-  createarg_code : list byte; (* The code that deploys the runtime code. *)
-}
-
-(* Failing*)
-type failure_reason =
-| OutOfGas
-| TooDeepStack
-| TooLowStack
-| InvalidJumpDestination
-| ShouldNotHappen
-
-type contract_action =
-| ContractCall call_args (* calling an account *)
-| ContractDelegateCall call_args (* calling some code to run on behalf of the contract *)
-| ContractCreate create_args (* deploying a smart contract *)
-| ContractFail list failure_reason (* failing back to the caller *)
-| ContractSuicide address (* destroying itself and returning back to the caller *)
-| ContractReturn list byte (* normally returning back to the caller *)
 
 
 
-(* Instruction is a function that takes environments and modifies some parts of them *)
-(* The available information about the block *)
-type block_info = {
-  block_blockhash : uint256 -> uint256; (* this captures the whole BLOCKHASH operation *)
-  block_coinbase : address; (* the miner who validates the block *)
-  block_timestamp : uint256;
-  block_number : uint256; (* the blocknumber of the block *)
-  block_difficulty : uint256;
-  block_gaslimit : uint256; (* the block gas imit *)
-}
 
-(* A log entry *)
-type log_entry = {
-  log_addr   : address;
-  log_topics : list uint256;
-  log_data   : list byte;
-}
+(* Auxiliary functions for EVM instructions *)  
 
-(* The variable context contains the changeable information. *)
-type variable_ctx = {
-  vctx_stack : list uint256;
-  vctx_memory : memory;
-  vctx_memory_usage : int; (* the current memory usage *)
-  vctx_storage : storage;
-  vctx_pc : int; (* the program counter *)
-  vctx_balance : address -> uint256; (* balances of all accounts *)
-  vctx_caller : address; (* the caller's address *)
-  vctx_value_sent : uint256; (* the amount of Eth sent along the current invocation *)
-  vctx_data_sent : list byte; (* the data sent along the current invocation *)
-  vctx_storage_at_call : storage; (* the storage content at the invocation*)
-  vctx_balance_at_call : address -> uint256; (* the balances at the invocation *)
-  vctx_origin : address; (* the external account that started the current transaction *)
-  vctx_ext_program : address -> program; (* the codes of all accounts *)
-  vctx_block : block_info; (* the current block *)
-  vctx_gas : integer; (* remaining gas before the instruction *)
-  vctx_account_existence : address -> bool;
-  vctx_touched_storage_index : list uint256;
-  vctx_logs : list log_entry; (* stored newest first *)
-  vctx_refund : int;
-  vctx_gasprice : uint256;
-}
+(* Auxiliary functions for memory *)
+(* Memory initialization*)
 
-(* The constant context contains the stable information. *)
-type constant_ctx = {
-  cctx_program : program; (* the code in the account under analysis. *)
-  cctx_this : address; (* the address of the account under analysis. *)
-  cctx_hash_filter : list byte -> bool;
-}
+let empty_memo: memory = fun addr: machword -> None
 
-(* The Result of an Instruction *)
-(* Result of program execution is results of its instructions *)
-type instruction_result =
-| InstructionContinue variable_ctx (* the execution should continue. *)
-| InstructionToEnvironment
-    contract_action   (* the contract's action *)
-  * variable_ctx      (* the last variable env *)
-  * option (int * int) (* the variable environment to return to *) (* Question here about the return thing *)
-(* the execution stops; either for the moment just call out another account, or finish the current invocation *)
+let rec update_memoContent (memo: memory) (idx: uint256) (cont: list memory_content) (n: int): memory 
+requires {n >= 0}
+=   match n with 
+      | 0 -> memo
+      | m + 1 -> 
+        match cont with 
+          | Nil -> memo
+          | h :: t -> update_memoContent (fun addr -> if addr = idx then h else memo addr) (idx + 1) t m
+        end
+    end
 
-
-(* When the contract fails, the result of the instruction looks like this: *)
-let instruction_failure_result (v: variable_ctx) (reasons: list failure_reason): instruction_result =
-  InstructionToEnvironment (ContractFail reasons) v None
-
-(* When the contract returns, the result of the instruction looks like this: *)
-let instruction_return_result (x: list byte)  (v: variable_ctx): instruction_result =
-  InstructionToEnvironment (ContractReturn x) v None
-
-(* Auxiliary Functions for defining EVM operations *)  
-
-(* Gas inst is modeled to be a value dependent on the variable environment *)
-(* This is not a problem when analyzing a single invocation of a loopless contract *)
-(* For futher possible use, gas accounting should be complete. *)
-
-
-let gas (v: variable_ctx): uint256  = word256FromInt v.vctx_gas
-
-(* M function in the yellow paper for updating the memory usage counter. *)
-let Memo_use (s: int) (f: uint256) (l:uint256) : int =
-  if l = 0 then s else max s ((uint f + uint l + 31) div 32) (* uint256 to uint maybe needed, also the max support needs to be checked *)
-
-(* Updating a balance of a single account:  *)
-let update_balance (a: address) (f: uint256 -> uint256) (orig: address -> uint256) (x: address): uint256 = 
-if x = a then f (orig a) else orig x 
-
-(* Popping stack elements: *)
-let vctx_pop_stack (n: nat) (v: variable_ctx) : variable_ctx =
-{ v with vctx_stack =  reverse (tl (reverse v.vctx_stack)) } (* expr record: { (lqualid = expr;)+ };  
-{expr with (lqualid = expr;)+}; Record field update: { term with term-field+} *)
-
-(* Updating the storage at an index: *)
-let vctx_update_storage (idx: uint256) (vall: uint256) (v: variable_ctx) : variable_ctx =
-  {v with vctx_storage = (fun x -> if x = idx then vall else v.vctx_storage x) }
-
-(* Peeking the next instruction: *)
-let vctx_next_instruction (v: variable_ctx) (c: constant_ctx) : option inst  =
-  match c.cctx_program.program_content v.vctx_pc with
-  | Some i -> Some i
-  | None -> Some (Account STOP)
+let rec read_memoContent (idx: uint256) (n: int) (memo: memory): list memory_content
+    requires {n >= 0}
+= match n with 
+    | 0 -> Nil
+    | m + 1 -> memo idx :: read_memoContent (idx + 1) m memo
   end
 
-(* Advancing the program counter: *)
-val vctx_advance_pc :  ->  -> 
-let vctx_advance_pc (c: constant_ctx) (v: variable_ctx): variable_ctx =
-{ v with vctx_pc =
-     (match vctx_next_instruction v c with
-     | None -> v.vctx_pc + 1
-     | Some inst -> v.vctx_pc + integerFromInt (inst_size inst) end) }
+(* Auxiliary functions for stack *)
 
-(* No-op, which just advances the program counter: *)
-val stack_0_0_op : variable_ctx -> constant_ctx -> instruction_result
-let stack_0_0_op v c = InstructionContinue (vctx_advance_pc c v)
+let push_stack (s: stack) (ele: machword): stack = ele :: s
 
-(* A general pattern of operations that pushes one element onto the stack:  *)
-val stack_0_1_op : variable_ctx -> constant_ctx -> w256 -> instruction_result
-let stack_0_1_op v c w =
-   InstructionContinue (vctx_advance_pc c <| v with vctx_stack = w :: v.vctx_stack |>)
+let pop_stack (s: stack): stack * option machword  = 
+    match s with
+    | ele :: (tl s) -> (tl s, Some ele)
+    | _ -> (s, None) 
+    end
+
+(* Machine state update *)
+
+let update_stack (st: stack) (m: machine_state) : machine_state =
+{ m with mac_stack = st }   
+
+let update_memory (memo: memory) (m: machine_state) : machine_state =
+{ m with mac_memory = memo }  
+
+let update_pc (pc: int) (m: machine_state) : machine_state =
+{ m with mac_pc = pc }   
+
+let update_status (vst: vmstatus) (m: machine_state) : machine_state =
+{ m with mac_status = vst }  
 
 
-(* A general pattern of operations that transforms the topmost element of the stack: *)
-val stack_1_1_op : variable_ctx -> constant_ctx -> (w256 -> w256) -> instruction_result
-let stack_1_1_op v c f = match v.vctx_stack with
-  | Nil -> instruction_failure_result v [TooShortStack]
-  | h :: t -> InstructionContinue (vctx_advance_pc c <| v with vctx_stack = f h :: t |>)
-end
+(* Auxiliay function for the slight change in machine state to get the opcodes *)
 
-(* A general pattern of operations that take two words and produce one word: *)
-val stack_2_1_op : variable_ctx -> constant_ctx -> (w256 -> w256 -> w256) -> instruction_result
-let stack_2_1_op v c f = match v.vctx_stack with
- | operand0 :: operand1 :: rest ->
-       InstructionContinue
-         (vctx_advance_pc c <| v with vctx_stack = f operand0 operand1 :: rest |>)
-  | _ -> instruction_failure_result v [TooShortStack]
-end
+let get_inst (mac_st: machine_state) =
+  match mac_st with 
+  | _ _ pc _ _ _ insts _ -> List.nth pc insts 
+  end
 
-(* A general pattern of operations that take three words and produce one word: *)
-val stack_3_1_op : variable_ctx -> constant_ctx -> (w256 -> w256 -> w256 -> w256) -> instruction_result
-let stack_3_1_op v c f = match v.vctx_stack with
- | operand0 :: operand1 :: operand2 :: rest ->
-       InstructionContinue
-         (vctx_advance_pc c <| v with vctx_stack = f operand0 operand1 operand2 :: rest |>)
- | _ -> instruction_failure_result v [TooShortStack]
-end
+(* Transformation semantics for different insturctions *)
+
+let interpreter: machine_state -> machine_state =
+   fun mac_st -> 
+   let inst = get_inst mac_st in
+   match inst with 
+   | System STOP -> update_status mac_st (Finish (Normal (uint256_of_int 0)))
+
+   end
