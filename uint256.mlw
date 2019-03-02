@@ -1,17 +1,34 @@
 (* In why3, Integer constants can be given in base 10, 16, 8 or 2. Real constants can be given in base 10 or 16 *)
-module UInt256
-	use mach.int.Unsigned
-	type uint256
-	constant max_uint256: int = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-	clone export mach.int.Unsigned with
-		type t = uint256,
-		constant max = max_uint256
-	function uint256_to_int (x: uint256): int
-	val uint256_to_int (n: uint256) : int
-	 ensures {result = n}
-	val uint256_of_int (n: int): uint256 
-	requires { in_bounds n }
-	ensures { result = n } 
 
-	function uint256_of_int (x: int): uint256
+
+
+module UInt256Gen
+
+  use int.Int
+
+  type uint256 = < range 0 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff >
+
+  let constant max_uint256 : int = 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
+  let constant length : int = 256
+  let constant radix : int = max_uint256 + 1
+
+  function to_int (x : uint256) : int = uint256'int x
+
+end
+
+module UInt256
+  use mach.int.Unsigned
+  use export UInt256Gen
+
+  clone export mach.int.Unsigned with
+    type t = uint256,
+    constant max = uint256'maxInt,
+    constant radix = radix,
+    goal radix_def,
+    function to_int = uint256'int,
+    lemma zero_unsigned_is_zero,
+    lemma to_int_in_bounds,
+    lemma extensionality
+
+
 end
