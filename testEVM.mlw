@@ -1,28 +1,4 @@
-module Bounded_int
-
-  use int.Int
-
-  type t
-
-  constant min : int
-  constant max : int
-
-  function to_int (n:t) : int
-  meta coercion function to_int
-  meta "model_projection" function to_int
-
-  val to_int (n:t) : int
-    ensures { result = n }
-
-  predicate in_bounds (n:int) = min <= n <= max
-
-  axiom to_int_in_bounds: forall n:t. in_bounds n
-
-  val of_int (n:int) : t
-    requires { [@expl:integer overflow] in_bounds n }
-    ensures  { result = n }
-end
-
+(*
 module UInt256
 	use mach.int.Unsigned
 	type uint256
@@ -73,6 +49,8 @@ module UInt4
 *)
 	(*function uint4_of_int (x: int): uint4*)
 end
+*)
+
 module EVM
 (* Focus on machine state: Program Counter, Gas Available, Stack Contents, Memory Contents which are volatile Machine state;
 with the account storage as persistent world state *)
@@ -84,22 +62,25 @@ use int.Power
 use list.ListRich (* combo theory that includes all list operations like length, reversal, and concatenation *)
 use option.Option
 use map.Map
+use int.ComputerDivision
+(*
 use UInt256
 use UInt160
 use UInt8
 use UInt4
 use mach.int.Unsigned
-
+*)
 (* Use clear alias for commonly-used type *)
 
 
 (* 32-bit and 64-bit signed and unsigned integers ([Int32], [UInt32], [Int64], and [UInt64]) as well as 31-bit and 
 63-bit signed integers ([Int31] and [Int63] have been instantiated *)
 (* They can be transformed using to_int and of_int, which can be further encapsulated for other transformation between type *) 
+(*
 type byte = uint8
 type address = uint160
 type machword = uint256
-
+*)
 (* Set explicit type transformation, such as machword to address, machword to byte in each newly-built library,
 encapsulated as a direct function, e.g. to_int and of_int to a function *)
 
@@ -109,11 +90,11 @@ encapsulated as a direct function, e.g. to_int and of_int to a function *)
 
 (* Enumeration type*)
 type memory_content = 
-   | Item8 uint256
-   | Item256 uint256
-type memory = machword -> option memory_content
-type stack = list uint256
-type storage = machword -> machword (* machine word -> machine word *)
+   | Item8 int
+   | Item256 int
+type memory = int -> option memory_content
+type stack = list int
+type storage = int -> int (* machine word -> machine word *)
 
 (* EVM status *)
 (* TODO *)
@@ -127,8 +108,8 @@ type error =
     | InvalidOpcode
 
 type return_type =
-  | Normal uint256
-  | Create uint256
+  | Normal int
+  | Create int
   | Revert
 
 type vmstatus =
@@ -390,7 +371,7 @@ end
 
 type stack_inst =
   | POP (* Remove item from stack *)
-  | PUSH machword (* pushing an element to the stack *) 
+  | PUSH int (* pushing an element to the stack *) 
   | CALLDATALOAD (* push a word to the stack which is taken from the caller's data *)
 
 exception PushError
@@ -414,22 +395,22 @@ let stack_inst_num (inst: stack_inst): st_num = match inst with
 end
 
 (* The 16 insts for duplicating a stack element, take a stack element and copy it on top of the stack *)
-type dup_inst = uint4
+type dup_inst = int
 
 let dup_inst_opcode (inst: dup_inst): int =
-(UInt4.to_int inst + 0X80) 
+(inst + 0X80) 
 
 let dup_inst_num (inst: dup_inst): st_num =
-(UInt4.to_int inst, (UInt4.to_int inst) + 1 )
+(inst, ( inst) + 1 )
 
 (* The 16 insts for taking a stack element and duplicate it on top of the stack.*)
-type swap_inst = uint4
+type swap_inst = int
 
 let swap_inst_opcode (inst: swap_inst): int =
-  ((UInt4.to_int inst) + 0X90)
+  ((inst) + 0X90)
 
 let swap_inst_num (inst: swap_inst): st_num =
-((UInt4.to_int inst) + 1, (UInt4.to_int inst) + 1)
+(( inst) + 1, ( inst) + 1)
 
 (* Logging Operations *)
 (* The state change is to append an additional log entry on to the substate’s log series *)
@@ -499,7 +480,6 @@ end
 (* The previous operation sets above are here combined into a single type. *)
 
 type instruction =
-  | Unknown byte
   | Bits bits_inst
   | Sarith sign_arith_inst
   | Arith arith_inst
@@ -522,7 +502,6 @@ end*)
 
 let inst_opcode (inst: instruction): list int = 
 match inst with
-| Unknown byte -> Cons (UInt8.to_int byte) Nil
 | Bits b -> Cons (bit_inst_opcode b) Nil
 | Sarith s -> Cons (sign_arith_inst_opcode s) Nil
 | Arith a -> Cons (arith_inst_opcode a) Nil
@@ -539,7 +518,6 @@ end
 
 
 let inst_stack_num (inst: instruction): st_num = match inst with
-| Unknown _ -> (0, 0)
 | Bits b -> bit_inst_num b
 | Sarith s -> sign_arith_inst_num s
 | Arith a -> arith_inst_num a
@@ -654,7 +632,7 @@ type machine_state = {
   mac_memory_usage : int; (* the current memory usage *) 
   mac_gas : int; (* the remaining gas *)
   mac_insts : list instruction;  (* Slight changes *)
-  mac_jumpmap : uint256 -> int
+  mac_jumpmap : int -> int
 }
 
 
@@ -694,17 +672,17 @@ let rec read_memoContent (idx: uint256) (n: int) (memo: memory): list memory_con
     | m + 1 -> memo idx :: read_memoContent (idx + 1) m memo
   end
 *)
-let update_memory_content (m: memory) (idx: uint256) (cont: option memory_content): memory =
+let update_memory_content (m: memory) (idx: int) (cont: option memory_content): memory =
    fun addr -> if addr = idx then cont else (m addr)
 
 (* Auxiliary functions for stack *)
 
-let push_stack (s: stack) (ele: machword): stack = Cons ele s
+let push_stack (s: stack) (ele: int): stack = Cons ele s
 (*
 let rec push_stack_lst (s: stack) (lst: list uint256) (idx: int): stack = 
 if idx = 0 then s else (push_stack_lst (Cons lst[0] s) (tl lst) (idx - 1))
 *)
-let pop_stack (s: stack): (stack, option machword)  = 
+let pop_stack (s: stack): (stack, option int)  = 
     match s with
     | Cons x t -> (t, Some x)
     | _ -> (s, None) 
@@ -755,7 +733,7 @@ let interpreter: machine_state -> machine_state =
    fun m -> 
    let inst = get_inst m in
    match inst with 
-    | Some (System STOP) -> {m with mac_status = (Finish (Normal (UInt256.of_int 0)))}
+    | Some (System STOP) -> {m with mac_status = (Finish (Normal ( 0)))}
     | Some (Arith ADD) -> let (st', a) = (pop_stack (m.mac_stack)) in 
                    let (st'', b) = ( pop_stack st') in 
                    match a, b with 
@@ -778,25 +756,25 @@ let interpreter: machine_state -> machine_state =
     | Some (Arith DIV) -> let (st', a) = (pop_stack (m.mac_stack)) in 
                    let (st'', b) = ( pop_stack st') in 
                    match a, b with 
-                   | Some a', Some b' -> {m with mac_stack = push_stack st'' ( a' / b'); mac_pc = m.mac_pc + 1}
+                   | Some a', Some b' -> {m with mac_stack = push_stack st'' ( div a'  b'); mac_pc = m.mac_pc + 1}
                    | _, _ -> {m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1}
                    end  
     | Some (Arith MOD) -> let (st', a) = (pop_stack (m.mac_stack)) in 
                    let (st'', b) = ( pop_stack st') in 
                    match a, b with 
-                   | Some a', Some b' -> {m with mac_stack = push_stack st'' ( a' % b'); mac_pc = m.mac_pc + 1}
+                   | Some a', Some b' -> {m with mac_stack = push_stack st'' ( mod a' b'); mac_pc = m.mac_pc + 1}
                    | _, _ -> {m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1}
                    end     
     | Some (Arith EXP) -> let (st', a) = (pop_stack (m.mac_stack)) in 
                    let (st'', b) = ( pop_stack st') in 
                    match a, b with 
-                   | Some a', Some b' -> {m with mac_stack = push_stack st'' (UInt256.of_int (power (UInt256.to_int a') (UInt256.to_int b'))); mac_pc = m.mac_pc + 1}
+                   | Some a', Some b' -> {m with mac_stack = push_stack st'' ( (power ( a') ( b'))); mac_pc = m.mac_pc + 1}
                    | _, _ -> {m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1}
                    end  
     | Some (Arith LT) -> let (st', a) = (pop_stack (m.mac_stack)) in 
                    let (st'', b) = ( pop_stack st') in 
                    match a, b with 
-                   | Some a', Some b' -> {m with mac_stack = push_stack st'' (if a' < b' then (UInt256.of_int 1) else (UInt256.of_int 0) ); mac_pc = m.mac_pc + 1}
+                   | Some a', Some b' -> {m with mac_stack = push_stack st'' (if a' < b' then ( 1) else ( 0) ); mac_pc = m.mac_pc + 1}
                    | _, _ -> {m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1}
                    end   
     | Some (Stack POP) -> let (st', a) = pop_stack (m.mac_stack) in 
@@ -805,7 +783,7 @@ let interpreter: machine_state -> machine_state =
                    | None -> { m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1 } 
                    end
     | Some (Stack (PUSH a)) -> inc_pc { m with mac_stack = (push_stack m.mac_stack a) } 
-    | Some (Dup i)     -> let ele = nth (UInt4.to_int(i) - 1) m.mac_stack in 
+    | Some (Dup i)     -> let ele = nth ((i) - 1) m.mac_stack in 
                   match ele with
                   | Some a -> { m with mac_stack = push_stack m.mac_stack a; mac_pc = m.mac_pc + 1 }
                   | None -> { m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1 }
@@ -824,7 +802,7 @@ let interpreter: machine_state -> machine_state =
                     let (s'', con) = pop_stack s' in
                     match dest, con with 
                     | Some _dest, Some _con -> 
-                         if _con = UInt256.of_int 0 then inc_pc {m with mac_stack = s'' }
+                         if _con =  0 then inc_pc {m with mac_stack = s'' }
                          else { m with mac_pc = (m.mac_jumpmap _dest) } 
                     | _, _ -> { m with mac_status = (Error OutOfStack) } (* TODO confirm if pc update is needed *)
                     end

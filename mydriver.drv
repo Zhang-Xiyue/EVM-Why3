@@ -1,0 +1,5 @@
+module MinimalEVM.Bounded_int
+  syntax type t "int"
+  syntax val  to_int  "fun x -> x"
+  syntax val of_int "fun x -> x"
+end
