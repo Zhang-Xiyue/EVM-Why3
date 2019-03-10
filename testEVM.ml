@@ -440,6 +440,30 @@ let pop_stack (s: (Z.t) list) : ((Z.t) list) * ((Z.t) option) =
   | _ -> (s, None)
   end
 
+let rec fetch (lst: (Z.t) list) (n: Z.t) : (Z.t) list =
+  if (Z.gt n (Z.of_int (List.length lst))) || (Z.equal n Z.zero) then begin
+    [] end
+  else
+  begin
+    begin match lst with
+    | [] -> []
+    | x :: r -> x :: (fetch r (Z.sub n Z.one))
+    end end
+
+let rec drop (lst: (Z.t) list) (n: Z.t) : (Z.t) list =
+  if Z.equal n Z.zero then begin lst end
+  else
+  begin
+    List.rev (fetch (List.rev lst) (Z.sub (Z.of_int (List.length lst)) n)) end
+
+let swap_stack (s: (Z.t) list) (i: Z.t) : ((Z.t) list) option =
+  begin match (List.nth Z.zero s, List.nth i s) with
+  | (Some ele_0, Some ele_i) ->
+    Some (List.append (ele_i :: (fetch (drop s Z.one) (Z.sub i Z.one))) (ele_0 :: (
+    drop s i)))
+  | (_, _) -> None
+  end
+
 let update_stack (st: (Z.t) list) (m: machine_state) : machine_state =
   { mac_stack = st; mac_memory = (m.mac_memory); mac_pc = (m.mac_pc);
     mac_status = (m.mac_status); mac_memory_usage = (m.mac_memory_usage);
@@ -628,6 +652,20 @@ let interpreter (m: machine_state) : machine_state =
         mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
         mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
     end
+  | Some Swap i ->
+    let s = swap_stack (m.mac_stack) i in
+    begin match s with
+    | Some uss ->
+      { mac_stack = uss; mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (m.mac_status);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    | None ->
+      { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    end
   | Some Pc JUMP ->
     let (sqt, dest) = pop_stack (m.mac_stack) in
     begin match dest with
@@ -696,6 +734,21 @@ let interpreter (m: machine_state) : machine_state =
         (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
         mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
         mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    end
+  | Some Stack CALLDATALOAD ->
+    let (sqt4, offset2) = pop_stack (m.mac_stack) in
+    begin match offset2 with
+    | Some _ ->
+      { mac_stack = (push_stack sqt4 Z.one); mac_memory = (m.mac_memory);
+        mac_pc = (Z.add (m.mac_pc) Z.one); mac_status = (m.mac_status);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    | None ->
+      { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    | _ -> assert false (* absurd *)
     end
   | _ ->
     { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =

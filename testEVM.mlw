@@ -89,10 +89,12 @@ encapsulated as a direct function, e.g. to_int and of_int to a function *)
 (* storage(independent): word addressed word array, maintained as part of the system state *)
 
 (* Enumeration type*)
+
 type memory_content = 
    | Item8 int
    | Item256 int
-type memory = int -> option memory_content
+  
+type memory = int -> memory_content
 type stack = list int
 type storage = int -> int (* machine word -> machine word *)
 
@@ -672,6 +674,9 @@ let rec read_memoContent (idx: uint256) (n: int) (memo: memory): list memory_con
     | m + 1 -> memo idx :: read_memoContent (idx + 1) m memo
   end
 *)
+(*
+function read_memory (memo: memory) (idx: int) : memory_content
+*)
 let update_memory_content (m: memory) (idx: int) (cont: option memory_content): memory =
    fun addr -> if addr = idx then cont else (m addr)
 
@@ -688,10 +693,55 @@ let pop_stack (s: stack): (stack, option int)  =
     | _ -> (s, None) 
     end
 
-(* TODO update the concrete definition *)
+let rec fetch (lst: list int) (n: int): list int =
+requires {0 <= n <= length(lst)}
+variant{n}
+if n > length(lst) || n = 0 then Nil else
+match lst with 
+| Nil -> Nil
+| Cons x r -> Cons x (fetch r (n - 1))
+end
+
+let rec drop (lst: list int) (n: int): list int =
+requires {0 <= n <= length(lst)}
+if n = 0 then lst else
+reverse (fetch (reverse lst) (length(lst)-n))
+
+
+let swap_stack (s: stack) (i: int): (option stack) = 
+match (nth 0 s, nth i s) with
+| (Some ele_0, Some ele_i) -> Some ((Cons ele_i (fetch (drop s 1) (i-1))) ++ (Cons ele_0 (drop s i)))
+| _, _ -> None
+end
 (*
-function swap_stack (s: stack) (i: int): option stack
-*)     
+let rec fetch (lst: stack) (n: int): stack =
+requires {0 <= n <= length(lst)}
+variant {n}
+if n > length(lst) ||  n = 0 then Nil else 
+match lst with
+| Nil -> Nil
+| Cons x r -> Cons x (fetch r (n-1))
+end
+
+let rec drop (lst: stack) (n: int): stack =
+requires {0 <= n <= length(lst)}
+if n = 0 then lst else
+(reverse (fetch (reverse lst) (length(lst)-n)))
+
+let rec concat (l1: stack) (l2: stack): stack =
+variant{length(l1)}
+match l1 with
+| Nil -> l2
+| Cons x1 r1 -> (push_stack (concat r1 l2)  x1 )
+end 
+(* Need further revision *)
+let swap_stack (s: stack) (i: int): stack = 
+match (nth 0 s, nth i s) with
+| (Some ele_0, Some ele_i) -> (concat (push_stack (fetch (tl s) (i-1)) ele_i) (push_stack (drop s (i+1)) ele_0) )
+| _ -> absurd
+end
+
+*)
 
 (* Machine state update *)
 
@@ -774,7 +824,7 @@ let interpreter: machine_state -> machine_state =
     | Some (Arith LT) -> let (st', a) = (pop_stack (m.mac_stack)) in 
                    let (st'', b) = ( pop_stack st') in 
                    match a, b with 
-                   | Some a', Some b' -> {m with mac_stack = push_stack st'' (if a' < b' then ( 1) else ( 0) ); mac_pc = m.mac_pc + 1}
+                   | Some a', Some b' -> {m with mac_stack = push_stack st'' (if a' < b' then 1 else  0 ); mac_pc = m.mac_pc + 1}
                    | _, _ -> {m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1}
                    end   
     | Some (Stack POP) -> let (st', a) = pop_stack (m.mac_stack) in 
@@ -788,11 +838,11 @@ let interpreter: machine_state -> machine_state =
                   | Some a -> { m with mac_stack = push_stack m.mac_stack a; mac_pc = m.mac_pc + 1 }
                   | None -> { m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1 }
                   end
- (*   | Some (Swap i)    -> let s = swap_stack m.mac_stack (UInt4.to_int i) in 
+    | Some (Swap i)    -> let s = (swap_stack m.mac_stack i) in 
                   match s with
                   | Some _s -> { m with mac_stack = _s; mac_pc = m.mac_pc + 1 }
                   | None  ->  { m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1 }
-                  end *)
+                  end
     | Some (Pc JUMP)    -> let (s', dest) = pop_stack m.mac_stack in 
                     match dest with 
                     | Some _dest -> {m with mac_stack = s'; mac_pc  = (m.mac_jumpmap _dest)}
@@ -819,8 +869,19 @@ let interpreter: machine_state -> machine_state =
                        | Some o, Some c -> {m with mac_stack = s''; mac_memory = update_memory_content m.mac_memory o (Some (Item8 c)); mac_pc = m.mac_pc + 1} 
                        | _, _ -> { m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1 } 
                        end
+    | Some (Stack CALLDATALOAD) -> let (s', offset) = pop_stack m.mac_stack in
+                       match offset with
+                       | Some _ -> {m with mac_stack = push_stack s' 1; mac_pc = m.mac_pc + 1 } (* TODO : interaction with the environment data *)
+                       | None -> { m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1 } 
+                       | _ -> absurd
+                       end
+    (*| Some (Memory MLOAD) -> let (s', offset) = pop_stack m.mac_stack in
+                        match offset with
+                        | Some o -> {m with mac_stack = push_stack s' (read_memory m.mac_memory o) ; mac_pc = m.mac_pc + 1 }
+                        | None -> { m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1 } 
+                        end*)
     | _                 -> {m with mac_status = (Error InvalidOpcode)} 
     end
-(* CALLDATALOAD for stack *)
+
 (* MLOAD CALLDATACOPY for memory *)
 end
