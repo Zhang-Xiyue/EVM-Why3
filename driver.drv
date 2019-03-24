@@ -1,5 +1,0 @@
-module MinimalEVM.Bounded_int
-  syntax type t "big_int"
-  syntax val  to_int   "int_of_big_int"
-  syntax val  of_int   "big_int_of_int"
-end

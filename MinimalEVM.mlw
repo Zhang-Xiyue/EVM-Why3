@@ -1,28 +1,3 @@
-module Bounded_int
-
-  use int.Int
-
-  type t
-
-  constant min : int
-  constant max : int
-
-  function to_int (n:t) : int
-  meta coercion function to_int
-  meta "model_projection" function to_int
-
-  val to_int (n:t) : int
-    ensures { result = n }
-
-  predicate in_bounds (n:int) = min <= n <= max
-
-  axiom to_int_in_bounds: forall n:t. in_bounds n
-
-  val of_int (n:int) : t
-    requires { [@expl:integer overflow] in_bounds n }
-    ensures  { result = n }
-end
-
 module UInt256
 	use mach.int.Unsigned
 	type uint256
