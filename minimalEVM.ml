@@ -448,6 +448,31 @@ let pop_stack (s: (int) list) : ((int) list) * ((int) option) =
   | _ -> (s, None)
   end
 
+let rec fetch (lst: (int) list) (n: Z.t) : (int) list =
+  if (Z.gt n (Z.of_int (List.length lst))) || (Z.equal n Z.zero) then begin
+    [] end
+  else
+  begin
+    begin match lst with
+    | [] -> []
+    | x :: r -> x :: (fetch r (Z.sub n Z.one))
+    end end
+
+let rec drop (lst: (int) list) (n: Z.t) : (int) list =
+  if Z.equal n Z.zero then begin lst end
+  else
+  begin
+    List.rev (fetch (List.rev lst) (Z.sub (Z.of_int (List.length lst)) n)) end
+
+let swap_stack (s: (int) list) (i: Z.t) : ((int) list) option =
+  begin match (List.nth Z.zero s, List.nth (Z.sub i Z.one) s) with
+  | (Some ele_0, Some ele_i_prev) ->
+    Some (List.append (ele_i_prev :: (fetch (drop s Z.one)
+                                        (Z.sub i (Z.of_string "2")))) (ele_0 :: (
+    drop s i)))
+  | (_, _) -> None
+  end
+
 let update_stack (st: (int) list) (m: machine_state) : machine_state =
   { mac_stack = st; mac_memory = (m.mac_memory); mac_pc = (m.mac_pc);
     mac_status = (m.mac_status); mac_memory_usage = (m.mac_memory_usage);
@@ -551,12 +576,84 @@ let interpreter (m: machine_state) : machine_state =
         mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
         mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
     end
-  | Some Arith MOD ->
+  | Some Sarith SDIV ->
     let (stqt4, a4) = pop_stack (m.mac_stack) in let (stqtqt4, b4) =
     pop_stack stqt4 in
     begin match (a4, b4) with
     | (Some aqt, Some bqt) ->
-      { mac_stack = (push_stack stqtqt4 (aqt % bqt)); mac_memory =
+      let usa = aqt in
+      let usb = bqt in
+      if Z.equal usb Z.zero then begin
+        { mac_stack = (push_stack stqtqt4 (Z.zero)); mac_memory =
+          (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one); mac_status =
+          (m.mac_status); mac_memory_usage = (m.mac_memory_usage); mac_gas =
+          (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
+          (m.mac_jumpmap) } end
+      else
+      begin
+        if
+          (Z.equal usa (Z.neg (power (Z.of_string "2") (Z.of_string "255")))) && (Z.equal usb (Z.of_string "-1"))
+          then begin
+          { mac_stack =
+            (push_stack stqtqt4
+               ((Z.neg (power (Z.of_string "2") (Z.of_string "255")))));
+            mac_memory = (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one);
+            mac_status = (m.mac_status); mac_memory_usage =
+            (m.mac_memory_usage); mac_gas = (m.mac_gas); mac_insts =
+            (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) } end
+        else
+        begin
+          if Z.gt usa Z.zero then begin
+            if Z.gt usb Z.zero then begin
+              { mac_stack = (push_stack stqtqt4 ((Z.ediv usa usb)));
+                mac_memory = (m.mac_memory); mac_pc =
+                (Z.add (m.mac_pc) Z.one); mac_status = (m.mac_status);
+                mac_memory_usage = (m.mac_memory_usage); mac_gas =
+                (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
+                (m.mac_jumpmap) } end
+            else
+            begin
+              { mac_stack =
+                (push_stack stqtqt4
+                   ((Z.mul (Z.of_string "-1") (Z.ediv usa (Z.mul (Z.of_string "-1") usb)))));
+                mac_memory = (m.mac_memory); mac_pc =
+                (Z.add (m.mac_pc) Z.one); mac_status = (m.mac_status);
+                mac_memory_usage = (m.mac_memory_usage); mac_gas =
+                (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
+                (m.mac_jumpmap) } end end
+          else
+          begin
+            if Z.gt usb Z.zero then begin
+              { mac_stack =
+                (push_stack stqtqt4
+                   ((Z.mul (Z.of_string "-1") (Z.ediv (Z.mul (Z.of_string "-1") usa) usb))));
+                mac_memory = (m.mac_memory); mac_pc =
+                (Z.add (m.mac_pc) Z.one); mac_status = (m.mac_status);
+                mac_memory_usage = (m.mac_memory_usage); mac_gas =
+                (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
+                (m.mac_jumpmap) } end
+            else
+            begin
+              { mac_stack =
+                (push_stack stqtqt4
+                   ((Z.ediv (Z.mul (Z.of_string "-1") usa) (Z.mul (Z.of_string "-1") usb))));
+                mac_memory = (m.mac_memory); mac_pc =
+                (Z.add (m.mac_pc) Z.one); mac_status = (m.mac_status);
+                mac_memory_usage = (m.mac_memory_usage); mac_gas =
+                (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
+                (m.mac_jumpmap) } end end end end
+    | (_, _) ->
+      { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    end
+  | Some Arith MOD ->
+    let (stqt5, a5) = pop_stack (m.mac_stack) in let (stqtqt5, b5) =
+    pop_stack stqt5 in
+    begin match (a5, b5) with
+    | (Some aqt, Some bqt) ->
+      { mac_stack = (push_stack stqtqt5 (aqt % bqt)); mac_memory =
         (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one); mac_status =
         (m.mac_status); mac_memory_usage = (m.mac_memory_usage); mac_gas =
         (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
@@ -567,12 +664,122 @@ let interpreter (m: machine_state) : machine_state =
         mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
         mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
     end
-  | Some Arith EXP ->
-    let (stqt5, a5) = pop_stack (m.mac_stack) in let (stqtqt5, b5) =
-    pop_stack stqt5 in
-    begin match (a5, b5) with
+  | Some Sarith SMOD ->
+    let (stqt6, a6) = pop_stack (m.mac_stack) in let (stqtqt6, b6) =
+    pop_stack stqt6 in
+    begin match (a6, b6) with
     | (Some aqt, Some bqt) ->
-      { mac_stack = (push_stack stqtqt5 ((power (aqt) (bqt)))); mac_memory =
+      let usa = aqt in
+      let usb = bqt in
+      if Z.equal usb Z.zero then begin
+        { mac_stack = (push_stack stqtqt6 (Z.zero)); mac_memory =
+          (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one); mac_status =
+          (m.mac_status); mac_memory_usage = (m.mac_memory_usage); mac_gas =
+          (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
+          (m.mac_jumpmap) } end
+      else
+      begin
+        if Z.gt usa Z.zero then begin
+          if Z.gt usb Z.zero then begin
+            { mac_stack = (push_stack stqtqt6 ((Z.erem usa usb)));
+              mac_memory = (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one);
+              mac_status = (m.mac_status); mac_memory_usage =
+              (m.mac_memory_usage); mac_gas = (m.mac_gas); mac_insts =
+              (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) } end
+          else
+          begin
+            { mac_stack =
+              (push_stack stqtqt6
+                 ((Z.mul (Z.of_string "-1") (Z.erem usa (Z.mul (Z.of_string "-1") usb)))));
+              mac_memory = (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one);
+              mac_status = (m.mac_status); mac_memory_usage =
+              (m.mac_memory_usage); mac_gas = (m.mac_gas); mac_insts =
+              (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) } end end
+        else
+        begin
+          if Z.gt usb Z.zero then begin
+            { mac_stack =
+              (push_stack stqtqt6
+                 ((Z.mul (Z.of_string "-1") (Z.erem (Z.mul (Z.of_string "-1") usa) usb))));
+              mac_memory = (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one);
+              mac_status = (m.mac_status); mac_memory_usage =
+              (m.mac_memory_usage); mac_gas = (m.mac_gas); mac_insts =
+              (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) } end
+          else
+          begin
+            { mac_stack =
+              (push_stack stqtqt6
+                 ((Z.erem (Z.mul (Z.of_string "-1") usa) (Z.mul (Z.of_string "-1") usb))));
+              mac_memory = (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one);
+              mac_status = (m.mac_status); mac_memory_usage =
+              (m.mac_memory_usage); mac_gas = (m.mac_gas); mac_insts =
+              (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) } end end end
+    | (_, _) ->
+      { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    end
+  | Some Arith ADDMOD ->
+    let (stqt7, a7) = pop_stack (m.mac_stack) in let (stqtqt7, b7) =
+    pop_stack stqt7 in let (stqtqtqt, c) = pop_stack stqtqt7 in
+    begin match (a7, b7, c) with
+    | (Some aqt, Some bqt, Some cqt) ->
+      let usa = aqt in
+      let usb = bqt in
+      let usc = cqt in
+      if Z.equal usc Z.zero then begin
+        { mac_stack = (push_stack stqtqtqt (Z.zero)); mac_memory =
+          (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one); mac_status =
+          (m.mac_status); mac_memory_usage = (m.mac_memory_usage); mac_gas =
+          (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
+          (m.mac_jumpmap) } end
+      else
+      begin
+        { mac_stack = (push_stack stqtqtqt ((Z.erem (Z.add usa usb) usc)));
+          mac_memory = (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one);
+          mac_status = (m.mac_status); mac_memory_usage =
+          (m.mac_memory_usage); mac_gas = (m.mac_gas); mac_insts =
+          (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) } end
+    | (_, _, _) ->
+      { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    end
+  | Some Arith MULMOD ->
+    let (stqt8, a8) = pop_stack (m.mac_stack) in let (stqtqt8, b8) =
+    pop_stack stqt8 in let (stqtqtqt1, c1) = pop_stack stqtqt8 in
+    begin match (a8, b8, c1) with
+    | (Some aqt, Some bqt, Some cqt) ->
+      let usa = aqt in
+      let usb = bqt in
+      let usc = cqt in
+      if Z.equal usc Z.zero then begin
+        { mac_stack = (push_stack stqtqtqt1 (Z.zero)); mac_memory =
+          (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one); mac_status =
+          (m.mac_status); mac_memory_usage = (m.mac_memory_usage); mac_gas =
+          (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
+          (m.mac_jumpmap) } end
+      else
+      begin
+        { mac_stack = (push_stack stqtqtqt1 ((Z.erem (Z.mul usa usb) usc)));
+          mac_memory = (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one);
+          mac_status = (m.mac_status); mac_memory_usage =
+          (m.mac_memory_usage); mac_gas = (m.mac_gas); mac_insts =
+          (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) } end
+    | (_, _, _) ->
+      { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    end
+  | Some Arith EXP ->
+    let (stqt9, a9) = pop_stack (m.mac_stack) in let (stqtqt9, b9) =
+    pop_stack stqt9 in
+    begin match (a9, b9) with
+    | (Some aqt, Some bqt) ->
+      { mac_stack = (push_stack stqtqt9 ((power (aqt) (bqt)))); mac_memory =
         (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one); mac_status =
         (m.mac_status); mac_memory_usage = (m.mac_memory_usage); mac_gas =
         (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
@@ -584,12 +791,12 @@ let interpreter (m: machine_state) : machine_state =
         mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
     end
   | Some Arith LT ->
-    let (stqt6, a6) = pop_stack (m.mac_stack) in let (stqtqt6, b6) =
-    pop_stack stqt6 in
-    begin match (a6, b6) with
+    let (stqt10, a10) = pop_stack (m.mac_stack) in let (stqtqt10, b10) =
+    pop_stack stqt10 in
+    begin match (a10, b10) with
     | (Some aqt, Some bqt) ->
       { mac_stack =
-        (push_stack stqtqt6
+        (push_stack stqtqt10
            (if aqt < bqt then begin Z.one end else begin Z.zero end));
         mac_memory = (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one);
         mac_status = (m.mac_status); mac_memory_usage = (m.mac_memory_usage);
@@ -601,11 +808,69 @@ let interpreter (m: machine_state) : machine_state =
         mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
         mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
     end
+  | Some Arith GT ->
+    let (stqt11, a11) = pop_stack (m.mac_stack) in let (stqtqt11, b11) =
+    pop_stack stqt11 in
+    begin match (a11, b11) with
+    | (Some aqt, Some bqt) ->
+      { mac_stack =
+        (push_stack stqtqt11
+           (if aqt > bqt then begin Z.one end else begin Z.zero end));
+        mac_memory = (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one);
+        mac_status = (m.mac_status); mac_memory_usage = (m.mac_memory_usage);
+        mac_gas = (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
+        (m.mac_jumpmap) }
+    | (_, _) ->
+      { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    end
+  | Some Sarith SLT ->
+    let (stqt12, a12) = pop_stack (m.mac_stack) in let (stqtqt12, b12) =
+    pop_stack stqt12 in
+    begin match (a12, b12) with
+    | (Some aqt, Some bqt) ->
+      let usa = aqt in
+      let usb = bqt in
+      { mac_stack =
+        (push_stack stqtqt12
+           (if Z.lt usa usb then begin Z.one end else begin Z.zero end));
+        mac_memory = (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one);
+        mac_status = (m.mac_status); mac_memory_usage = (m.mac_memory_usage);
+        mac_gas = (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
+        (m.mac_jumpmap) }
+    | (_, _) ->
+      { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    end
+  | Some Sarith SGT ->
+    let (stqt13, a13) = pop_stack (m.mac_stack) in let (stqtqt13, b13) =
+    pop_stack stqt13 in
+    begin match (a13, b13) with
+    | (Some aqt, Some bqt) ->
+      let usa = aqt in
+      let usb = bqt in
+      { mac_stack =
+        (push_stack stqtqt13
+           (if Z.gt usa usb then begin Z.one end else begin Z.zero end));
+        mac_memory = (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one);
+        mac_status = (m.mac_status); mac_memory_usage = (m.mac_memory_usage);
+        mac_gas = (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
+        (m.mac_jumpmap) }
+    | (_, _) ->
+      { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    end
   | Some Stack POP ->
-    let (stqt7, a7) = pop_stack (m.mac_stack) in
-    begin match a7 with
+    let (stqt14, a14) = pop_stack (m.mac_stack) in
+    begin match a14 with
     | Some _ ->
-      { mac_stack = stqt7; mac_memory = (m.mac_memory); mac_pc =
+      { mac_stack = stqt14; mac_memory = (m.mac_memory); mac_pc =
         (Z.add (m.mac_pc) Z.one); mac_status = (m.mac_status);
         mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
         mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
@@ -615,8 +880,8 @@ let interpreter (m: machine_state) : machine_state =
         mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
         mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
     end
-  | Some Stack PUSH a8 ->
-    inc_pc ({ mac_stack = (push_stack (m.mac_stack) a8); mac_memory =
+  | Some Stack PUSH a15 ->
+    inc_pc ({ mac_stack = (push_stack (m.mac_stack) a15); mac_memory =
               (m.mac_memory); mac_pc = (m.mac_pc); mac_status =
               (m.mac_status); mac_memory_usage = (m.mac_memory_usage);
               mac_gas = (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
@@ -624,12 +889,26 @@ let interpreter (m: machine_state) : machine_state =
   | Some Dup i ->
     let ele = List.nth (Z.sub (i) Z.one) (m.mac_stack) in
     begin match ele with
-    | Some a8 ->
-      { mac_stack = (push_stack (m.mac_stack) a8); mac_memory =
+    | Some a15 ->
+      { mac_stack = (push_stack (m.mac_stack) a15); mac_memory =
         (m.mac_memory); mac_pc = (Z.add (m.mac_pc) Z.one); mac_status =
         (m.mac_status); mac_memory_usage = (m.mac_memory_usage); mac_gas =
         (m.mac_gas); mac_insts = (m.mac_insts); mac_jumpmap =
         (m.mac_jumpmap) }
+    | None ->
+      { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    end
+  | Some Swap i ->
+    let s = swap_stack (m.mac_stack) (i) in
+    begin match s with
+    | Some uss ->
+      { mac_stack = uss; mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (m.mac_status);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
     | None ->
       { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
         (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
@@ -677,10 +956,10 @@ let interpreter (m: machine_state) : machine_state =
     let (sqt2, offset) = pop_stack (m.mac_stack) in let (sqtqt1, cont) =
     pop_stack sqt2 in
     begin match (offset, cont) with
-    | (Some o, Some c) ->
+    | (Some o, Some c2) ->
       { mac_stack = sqtqt1; mac_memory =
-        (update_memory_content (m.mac_memory) o (Some (Item256 c))); mac_pc =
-        (Z.add (m.mac_pc) Z.one); mac_status = (m.mac_status);
+        (update_memory_content (m.mac_memory) o (Some (Item256 c2)));
+        mac_pc = (Z.add (m.mac_pc) Z.one); mac_status = (m.mac_status);
         mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
         mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
     | (_, _) ->
@@ -693,9 +972,9 @@ let interpreter (m: machine_state) : machine_state =
     let (sqt3, offset1) = pop_stack (m.mac_stack) in let (sqtqt2, cont1) =
     pop_stack sqt3 in
     begin match (offset1, cont1) with
-    | (Some o, Some c) ->
+    | (Some o, Some c2) ->
       { mac_stack = sqtqt2; mac_memory =
-        (update_memory_content (m.mac_memory) o (Some (Item8 c))); mac_pc =
+        (update_memory_content (m.mac_memory) o (Some (Item8 c2))); mac_pc =
         (Z.add (m.mac_pc) Z.one); mac_status = (m.mac_status);
         mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
         mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
@@ -704,6 +983,21 @@ let interpreter (m: machine_state) : machine_state =
         (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
         mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
         mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    end
+  | Some Stack CALLDATALOAD ->
+    let (sqt4, offset2) = pop_stack (m.mac_stack) in
+    begin match offset2 with
+    | Some _ ->
+      { mac_stack = (push_stack sqt4 (Z.one)); mac_memory = (m.mac_memory);
+        mac_pc = (Z.add (m.mac_pc) Z.one); mac_status = (m.mac_status);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    | None ->
+      { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
+        (Z.add (m.mac_pc) Z.one); mac_status = (Error OutOfStack);
+        mac_memory_usage = (m.mac_memory_usage); mac_gas = (m.mac_gas);
+        mac_insts = (m.mac_insts); mac_jumpmap = (m.mac_jumpmap) }
+    | _ -> assert false (* absurd *)
     end
   | _ ->
     { mac_stack = (m.mac_stack); mac_memory = (m.mac_memory); mac_pc =
