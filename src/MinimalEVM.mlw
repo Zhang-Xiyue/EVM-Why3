@@ -451,16 +451,16 @@ end*)
 
 let inst_opcode (inst: instruction): list int = 
 match inst with
-| Unknown byte -> Cons (UInt8.to_int byte) Nil
-| Bits b -> Cons (bit_inst_opcode b) Nil
-| Sarith s -> Cons (sign_arith_inst_opcode s) Nil
+| Invalid byte -> Cons (UInt8.to_int byte) Nil
 | Arith a -> Cons (arith_inst_opcode a) Nil
+| Sarith s -> Cons (sign_arith_inst_opcode s) Nil
+| Bits b -> Cons (bit_inst_opcode b) Nil
 | Info i -> Cons (info_inst_opcode i) Nil
-| Dup d -> Cons (dup_inst_opcode d) Nil
 | Memory m -> Cons (memory_inst_opcode m) Nil
 | Storage s -> Cons (storage_inst_opcode s) Nil
 | Pc p -> Cons (pc_inst_opcode p) Nil
 | Stack s -> stack_inst_opcode s
+| Dup d -> Cons (dup_inst_opcode d) Nil
 | Swap s -> Cons (swap_inst_opcode s) Nil
 | Log l -> Cons (log_inst_opcode l) Nil
 | System m -> Cons (system_inst_opcode m) Nil
@@ -468,16 +468,16 @@ end
 
 
 let inst_stack_num (inst: instruction): st_num = match inst with
-| Unknown _ -> (0, 0)
-| Bits b -> bit_inst_num b
-| Sarith s -> sign_arith_inst_num s
+| Invalid _ -> (0, 0)
 | Arith a -> arith_inst_num a
+| Sarith s -> sign_arith_inst_num s
+| Bits b -> bit_inst_num b
 | Info i -> info_inst_num i
-| Dup d -> dup_inst_num d
 | Memory m -> memory_inst_num m
 | Storage s -> storage_inst_num s
 | Pc p -> pc_inst_num p
 | Stack s -> stack_inst_num s
+| Dup d -> dup_inst_num d
 | Swap s -> swap_inst_num s
 | Log l -> log_inst_num l
 | System m -> system_inst_num m
@@ -502,20 +502,41 @@ constant g_extcode: int = 700 (* Amount of gas to pay for operations of the set 
 
 let gas_of_Wzero (inst: instruction) : int =
   match inst with
-    | System STOP 
-    | System RETURN 
+    | System STOP -> 0
+    | System RETURN -> 0
     | System REVERT -> 0
     | _ -> absurd
     end
 
+let gas_of_Wbase (inst: instruction) : int =
+  match inst with
+    | Info ADDRESS -> 2
+    | Info ORIGIN -> 2
+    | Info CALLER -> 2
+    | Info CALLVALUE -> 2
+    | Info CALLDATASIZE -> 2
+    | Info CODESIZE -> 2
+    | Info GASPRICE -> 2
+    | Info COINBASE -> 2
+    | Info TIMESTAMP -> 2
+    | Info NUMBER -> 2
+    | Info DIFFCULTY -> 2
+    | Info GASLIMIT -> 2
+    | Info RETURNDATASIZE -> 2
+    | Stack POP -> 2
+    | Pc PC -> 2
+    | Memory MSIZE -> 2
+    | Info GAS -> 2
+    | _ -> absurd
+    end
 
 let gas_of_Wlow (inst: instruction) : int =
   match inst with
-    | Arith MUL 
-    | Arith DIV
-    | Sarith SDIV
-    | Arith MOD
-    | Sarith SMOD
+    | Arith MUL -> 5
+    | Arith DIV -> 5
+    | Sarith SDIV -> 5
+    | Arith MOD -> 5
+    | Sarith SMOD -> 5
     | Sarith SIGNEXTEND -> 5
     | _ -> absurd
     end
