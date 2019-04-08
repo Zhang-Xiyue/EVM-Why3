@@ -1,8 +1,0 @@
-module A
-
-    use mach.int.Int32
-
-    let f (a : int32) : int32 =
-      a + 1
-
-end

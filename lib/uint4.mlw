@@ -1,0 +1,8 @@
+module UInt4
+	use mach.int.Unsigned
+	type uint4
+	constant max_uint4: int = 0xf
+	clone export mach.int.Unsigned with
+		type t = uint4,
+		constant max = max_uint4
+end

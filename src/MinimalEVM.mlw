@@ -1,54 +1,5 @@
-module UInt256
-	use mach.int.Unsigned
-	type uint256
-	constant max_uint256: int = 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
-	clone export mach.int.Unsigned with
-		type t = uint256,
-		constant max = max_uint256
-end
-
-module UInt160
-	use mach.int.Unsigned
-	type uint160
-	constant max_uint160: int = 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
-	clone export mach.int.Unsigned with
-		type t = uint160,
-		constant max = max_uint160
-end
-
-module UInt8
-	use mach.int.Unsigned
-	type uint8
-	constant max_uint8: int = 0xff
-	clone export mach.int.Unsigned with
-		type t = uint8,
-		constant max = max_uint8
-	(*function uint8_to_int (x: uint8): int= uint8'int x*)
-	(*val uint8_to_int (n: uint8) : int
-	 ensures {result = n}
-	val uint8_of_int (n: int): uint8 
-	requires { in_bounds n }
-	ensures { result = n } 
-*)
-	(*function uint8_of_int (x: int): uint8*)
-end
-module UInt4
-	use mach.int.Unsigned
-	type uint4
-	constant max_uint4: int = 0xf
-	clone export mach.int.Unsigned with
-		type t = uint4,
-		constant max = max_uint4
-	(*function uint4_to_int (x: uint4): int= uint4'int x*)
-	(*val uint4_to_int (n: uint4) : int
-	 ensures {result = n}
-	val uint4_of_int (n: int): uint4 
-	requires { in_bounds n }
-	ensures { result = n } 
-*)
-	(*function uint4_of_int (x: int): uint4*)
-end
 module EVM
+
 (* Focus on machine state: Program Counter, Gas Available, Stack Contents, Memory Contents which are volatile Machine state;
 with the account storage as persistent world state *)
 
@@ -60,10 +11,10 @@ use list.ListRich (* combo theory that includes all list operations like length,
 use option.Option
 use map.Map
 use int.EuclideanDivision
-use UInt256
-use UInt160
-use UInt8
-use UInt4
+use uint256.UInt256
+use uint160.UInt160
+use uint8.UInt8
+use uint4.UInt4
 
 
 (* Use clear alias for commonly-used type *)

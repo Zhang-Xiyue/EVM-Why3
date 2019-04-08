@@ -1,23 +1,16 @@
-printer "ocaml"
-
-module mach.int.Int32
-
-  syntax type int32  "int"
-  syntax literal int32 "%1"
+module int.Int
+    
+  syntax type int  "int"
+  syntax literal int "%1"
 
   syntax val (+)     "%1 + %2"
   syntax val (-)     "%1 - %2"
   syntax val (-_)    "-%1"
   syntax val ( * )   "%1 * %2"
-  syntax val (/)     "%1 / %2"
-  syntax val (%)     "%1 % %2"
   syntax val (=)     "%1 == %2"
   syntax val (<=)    "%1 <= %2"
   syntax val (<)     "%1 < %2"
   syntax val (>=)    "%1 >= %2"
   syntax val (>)     "%1 > %2"
-
-  syntax val of_int "%1"
-  syntax val to_int "%1"
 
 end
