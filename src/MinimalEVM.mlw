@@ -68,32 +68,6 @@ type vmstatus =
 (* Record the number of items required on the stack and returned to the stack for a given operation *)
 type st_num = (int, int)
 
-(* Bits *)
-type bits_inst =
-    | AND  
-    | OR
-    | XOR
-    | NOT
-    | BYTE (* Retrieve single byte from word *)
-
-
-let bit_inst_opcode (inst: bits_inst): int =
-    match inst with 
-        | AND -> 0X16
-        | OR -> 0X17
-        | XOR -> 0X18
-        | NOT -> 0X19
-        | BYTE -> 0X1a
-    end
-
-let bit_inst_num (inst: bits_inst): st_num =
-    match inst with 
-        | AND -> (2, 1)
-        | OR -> (2, 1)
-        | XOR -> (2, 1)
-        | NOT -> (1, 1)
-        | BYTE -> (2, 1)
-    end
 
 (* Signed Arithmetics *)
 type sign_arith_inst =
@@ -170,6 +144,34 @@ match inst with
 | ISZERO -> (1, 1)
 | SHA3 -> (2, 1)
 end
+
+(* Bits *)
+type bits_inst =
+    | AND  
+    | OR
+    | XOR
+    | NOT
+    | BYTE (* Retrieve single byte from word *)
+
+
+let bit_inst_opcode (inst: bits_inst): int =
+    match inst with 
+        | AND -> 0X16
+        | OR -> 0X17
+        | XOR -> 0X18
+        | NOT -> 0X19
+        | BYTE -> 0X1a
+    end
+
+let bit_inst_num (inst: bits_inst): st_num =
+    match inst with 
+        | AND -> (2, 1)
+        | OR -> (2, 1)
+        | XOR -> (2, 1)
+        | NOT -> (1, 1)
+        | BYTE -> (2, 1)
+    end
+
 
 (* Information *)
 type info_inst =
@@ -426,16 +428,16 @@ end
 (* The previous operation sets above are here combined into a single type. *)
 
 type instruction =
-  | Unknown byte
-  | Bits bits_inst
+  | Invalid byte
+  | Arith arith_inst  
   | Sarith sign_arith_inst
-  | Arith arith_inst
+  | Bits bits_inst
   | Info info_inst
-  | Dup dup_inst
   | Memory memory_inst
   | Storage storage_inst
   | Pc pc_inst
   | Stack stack_inst
+  | Dup dup_inst
   | Swap swap_inst
   | Log log_inst
   | System system_inst
