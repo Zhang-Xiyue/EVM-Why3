@@ -520,7 +520,7 @@ let gas_of_Wbase (inst: instruction) : int =
     | Info COINBASE -> 2
     | Info TIMESTAMP -> 2
     | Info NUMBER -> 2
-    | Info DIFFCULTY -> 2
+    | Info DIFFICULTY -> 2
     | Info GASLIMIT -> 2
     | Info RETURNDATASIZE -> 2
     | Stack POP -> 2
