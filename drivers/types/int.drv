@@ -1,16 +1,16 @@
 module int.Int
     
-  syntax type int  "int"
-  syntax literal int "%1"
+  syntax type int  "Z.t"
+  syntax literal int "(Z.of_int %1)"
 
-  syntax val (+)     "%1 + %2"
-  syntax val (-)     "%1 - %2"
-  syntax val (-_)    "-%1"
-  syntax val ( * )   "%1 * %2"
-  syntax val (=)     "%1 == %2"
-  syntax val (<=)    "%1 <= %2"
-  syntax val (<)     "%1 < %2"
-  syntax val (>=)    "%1 >= %2"
-  syntax val (>)     "%1 > %2"
+  syntax val (+)     "Z.add %1 %2"
+  syntax val (-)     "Z.sub %1 %2"
+  syntax val (-_)    "Z.negate %1"
+  syntax val ( * )   "Z.mul %1 %2"
+  syntax val (=)     "Z.eq %1 %2"
+  syntax val (<=)    "Z.le %1 %2"
+  syntax val (<)     "Z.lt %1 %2"
+  syntax val (>=)    "Z.ge %1 %2"
+  syntax val (>)     "Z.gt %1 %2"
 
 end
