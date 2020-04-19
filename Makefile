@@ -12,11 +12,22 @@ $(CURDIR)/drivers/types/UInt%.drv: $(INT_DRIVER_GENERATOR)
 
 
 evm.ml: $(CURDIR)/src/MinimalEVM.mlw drivers
-	why3 extract MinimalEVM.EVM -D ocaml64 -L src -L lib \
+	cp $(CURDIR)/src/ocaml/EVMDependency.ml $@
+	why3 extract MinimalEVM.EVM -L src -L lib \
 		$(addprefix -D $(CURDIR)/drivers/types/, $(INT_DRIVERS)) \
+		-D $(CURDIR)/drivers/ocaml64.drv \
 		-D $(CURDIR)/drivers/types/int.drv \
-		> $@
+		>> $@
+	cat $(CURDIR)/src/ocaml/EVMServer.ml >> $@
+
+evm: evm.ml
+	ocamlfind ocamlopt -linkpkg -package num $< -o $@
+
+run: evm
+	./evm
 
 clean:
-	rm $(addprefix $(CURDIR)/drivers/types/, $(INT_DRIVERS))
-	rm evm.ml
+	rm -f $(addprefix $(CURDIR)/drivers/types/, $(INT_DRIVERS))
+	rm -f evm.ml.in
+	rm -f evm.ml
+	rm -f evm
