@@ -6,6 +6,8 @@ module Z = struct
     let of_int = big_int_of_int
     let to_int = int_of_big_int
 
+    let zero = of_int 0
+
     let add = add_big_int
     let sub = sub_big_int
     let mul = mult_big_int

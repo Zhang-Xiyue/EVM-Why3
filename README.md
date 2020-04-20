@@ -11,15 +11,27 @@ install the dependencies.
 For example, under Debian-based linux distributions, you can use
 
 ```
-sudo apt-get install opam
-opam init
+$ sudo apt-get install opam
+$ opam init
 ```
 to install opam and initialize it.
 
 For the users who have already installed and properly configured *opam*, use
 ```
-opam install why3 ocamlfind
+$ opam install why3 ocamlfind
 ```
 to install the Why3 [Automated Theorem Prover](http://why3.lri.fr/).
 
-Now typing `make run` will extract the OCaml implemention, compile it and run it as a RPC server (for now not implemented yet).
+Now typing `make server` will extract the OCaml implemention, compile it and the compiled target
+runs as a RPC server (for now not implemented yet).
+
+## running tests
+
+Simply using:
+
+```
+$ make test
+$ ./test
+```
+
+will compile and run the test cases (*to be added*).

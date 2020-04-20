@@ -1,7 +1,9 @@
+open Evm;;
+
 (* the main function should be placed here *)
 
 let main () =
-    Printf.printf "hello, evm!\n"
+    Printf.printf "Running EVM Tests ...\n"
 ;;
 
 let _ = main ()
