@@ -21,10 +21,10 @@ evm.ml: $(CURDIR)/src/MinimalEVM.mlw drivers $(CURDIR)/src/ocaml/dependency.ml
 		>> $@
 
 %.cmo: %.ml
-	ocamlc -c $< -o $@
+	ocamlfind ocamlc -package num -c $< -o $@
 
-server: $(OCAML_TARGETS) server.ml
-	ocamlfind ocamlc -linkpkg -package num $< -o $@
+server: $(OCAML_TARGETS) server.cmo
+	ocamlfind ocamlc -linkpkg -package num $^ -o $@
 
 test: $(OCAML_TARGETS) test.cmo
 	ocamlfind ocamlc -linkpkg -package num $^ -o $@
