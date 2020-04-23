@@ -23,6 +23,9 @@ let init_vm insts jumpmap : machine_state = {
     mac_jumpmap = jumpmap
 }
 
+let print_vm (vm: machine_state) : unit =
+    Printf.printf "VM [%d Instructions]\n" (List.length vm.mac_insts)
+
 let run_vm (vm: machine_state) : vmstatus =
     let rec run vm =
         let next = (interpreter vm) in
