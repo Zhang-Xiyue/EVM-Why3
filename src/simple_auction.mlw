@@ -6,69 +6,123 @@ module UInt160
 		type t = uint160,
 		constant max = max_uint160
 end
-
-
-module Unsigned
-use int.Int
-  use mach.int.Bounded_int
-  type uint
-  constant min_uint : int = 0
-  clone export mach.int.Bounded_int with
-    type t = uint
-    constant min = min_uint
+module UInt
+    use mach.int.Bounded_int
+    type uint
+    constant min_uint : int = 0
+    clone export mach.int.Bounded_int with
+        type t = uint,
+        constant min = min_uint
 end
-
-module UInt256
-	use mach.int.Unsigned
-	type uint256
-	constant max_uint256: int = 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
-	clone export mach.int.Unsigned with
-		type t = uint256,
-		constant max = max_uint256
-end 
-
 module SimpleAuction
 use int.Int
 use bool.Bool
 use ref.Ref
 use map.Map
-use array.Array
 use int.ComputerDivision
-use mach.int.Unsigned
 use UInt160
-use UInt256
-use Unsigned
+use UInt
+
 type address = uint160
-beneficiary : address
-auctionEndTime : uint
-
-highestBidder : address
-highestBid : uint
-
-pendingReturns: map address uint
-ended: bool
+(* beneficiary : address
+auctionEndTime : uint *)
+(* pendingReturns: map address uint
+ended: bool *)
 
 (* type event = map address uint
 HighestBidIncreased: event
 AuctionEnded: event *)
+type auction_status = {
+    highestBid: uint;
+    highestBidder: address;
+    beneficiary_amount: uint
 
-type event = map address uint
+}
+(* type event = map address uint
 HighestBidIncreased: event
-AuctionEnded: event
+AuctionEnded: event *)
 exception Ret
+let bid (bid_sender: address) (bid_value: uint) (highestBid: uint) (highestBidder: address)
+    (pendingReturns: (map address uint)): (address, uint, uint)
+    requires {bid_value > highestBid}
+    requires {in_bounds ((pendingReturns highestBidder) + highestBid)}
+    ensures {let bidder, value, amount = result in bidder = bid_sender && value > highestBid && amount >= highestBid}
+    = 
+    let _highestBid = ref highestBid in 
+    let _highestBidder = ref highestBidder in 
+    (* let _pendingReturns = ref pendingReturns in *)
+    let _amountReturns = ref (pendingReturns highestBidder) in
+    try
+    begin
+        if (!_highestBid <> of_int 0) then _amountReturns := !_amountReturns + highestBid;
+    _highestBidder := bid_sender;
+    _highestBid := bid_value;
+    end;
+    raise Ret
+    with Ret -> !_highestBidder, !_highestBid, !_amountReturns
+end
 
-let bid (bid_sender: address) (bid_value: uint) (highestBid: ref uint) (highestBidder: ref address)
-    (pendingReturns: map address uint): (address, uint)
-    require (bid_value > highestBid)
+(* Exception  *)
+(* let withdraw (bid_sender: address) (auction_arr: map address uint )(pendingReturns: map address uint): bool
+    (* requires  *)
     = 
     try
     begin
-        if !highestBid <> 0  then pendingReturns[!highestBidder] += !highestBid;
-        highestBidder := bid_sender;
-        highestBid := bid_value;
+        if pendingReturns[bid_sender] > 0 then pendingReturns[bid_sender] = 0;
     end;
     raise Ret
-    with Ret -> (!highestBidder, !highestBid)
-end
+    with Ret -> True
+end *)
+
+(* let auctionEnd (current_time: real) (auctionEndTime: real) (ended: ref bool): event 
+    requires { current_time >= auctionEndTime}
+    requires {ended = False}
+    = 
+    try
+    begin
+        ended := True
+    end;
+    raise Ret
+    with Ret ->  *)
+
 
 end
+
+    (* let bid (bid_sender: address) (bid_value: uint) (auc_status: auction_status)
+        (pendingReturns: map address uint): auction_status
+        requires {bid_value > auc_status.highestBid}
+        ensures {let (auction_bidder, auction_bid) = result in 
+        auction_bidder = auction_status.highestBidder && auction_bid = auction_status.highestBid}
+        = 
+        let _highestBid = ref auc_status.highestBid in 
+        let _highestBidder = ref auc_status.highestBidder in 
+        try
+        begin
+            (* if (!_highestBid <> of_int 0) then 
+                begin
+                let _old_highest_bidder_value = !_pendingReturns !_highestBidder in
+                !_pendingReturns !_highestBidder <-  (_old_highest_bidder_value + !_highestBid);
+                end; *)
+            _highestBidder := bid_sender;
+            _highestBid := bid_value;
+            auction_status.highestBidder = !_highestBidder
+            auction_status.highestBidr = !_highestBid
+        end;
+        raise Ret
+        with Ret -> !_highestBidder, !_highestBid
+    end *)
+(* let bid (bid_sender: address) (bid_value: uint) (auc_status: auction_status) (pendingReturns: array uint):
+    auction_status
+    requires {bid_value > auc_status.highestBid}
+    ensures {auc_status.highestBidder = bid_sender && auc_status.highestBid = bid_value}
+    = 
+    try
+    begin
+        if ((to_int !auc_status.highestBid) <> 0) then 
+        pendingReturns[to_int auc_status.highestBidder] = pendingReturns[to_int auc_status.highestBidder] + auc_status.highestBid;
+        auc_status.highestBidder = bid_sender;
+        auc_status.highestBid = bid_value;
+    end;
+    raise Ret
+    with Ret -> auc_status
+end *)
