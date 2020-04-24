@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE why3session PUBLIC "-//Why3//proof session v5//EN"
+"http://why3.lri.fr/why3session.dtd">
+<why3session shape_version="5">
+<prover id="0" name="Alt-Ergo" version="2.2.0" timelimit="5" steplimit="0" memlimit="1000"/>
+<file name="../safemath.mlw">
+<theory name="UInt256">
+ <goal name="to_int_in_bounds">
+ </goal>
+ <goal name="extensionality">
+ </goal>
+ <goal name="zero_unsigned_is_zero">
+ </goal>
+ <goal name="radix_def">
+ </goal>
+</theory>
+<theory name="SafeMath" proved="true">
+ <goal name="VC mul_safe" expl="VC for mul_safe" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC mul_safe.0" expl="integer overflow" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="10"/></proof>
+  </goal>
+  <goal name="VC mul_safe.1" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="15"/></proof>
+  </goal>
+  <goal name="VC mul_safe.2" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="15"/></proof>
+  </goal>
+ </transf>
+ </goal>
+ <goal name="VC div_safe" expl="VC for div_safe" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC div_safe.0" expl="division by zero" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="10"/></proof>
+  </goal>
+  <goal name="VC div_safe.1" expl="integer overflow" proved="true">
+  <proof prover="0"><result status="valid" time="0.01" steps="42"/></proof>
+  </goal>
+  <goal name="VC div_safe.2" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="16"/></proof>
+  </goal>
+  <goal name="VC div_safe.3" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="16"/></proof>
+  </goal>
+ </transf>
+ </goal>
+ <goal name="VC sub_safe" expl="VC for sub_safe" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC sub_safe.0" expl="integer overflow" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="25"/></proof>
+  </goal>
+  <goal name="VC sub_safe.1" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="28"/></proof>
+  </goal>
+ </transf>
+ </goal>
+ <goal name="VC add_safe" expl="VC for add_safe" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC add_safe.0" expl="integer overflow" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="10"/></proof>
+  </goal>
+  <goal name="VC add_safe.1" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.01" steps="31"/></proof>
+  </goal>
+  <goal name="VC add_safe.2" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="16"/></proof>
+  </goal>
+ </transf>
+ </goal>
+</theory>
+</file>
+</why3session>
