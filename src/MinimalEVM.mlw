@@ -599,6 +599,7 @@ let inst_list_of_program(p: program) (idx: int): byte =
 type machine_state = {
   mac_stack : stack ; (* In EVM definition, max length is 1024 *)
   mac_memory : memory;
+  mac_storage : storage;
   mac_pc : int;
   mac_status : vmstatus;
   mac_memory_usage : int; (* the current memory usage *) 
@@ -681,6 +682,11 @@ match (nth 0 s, nth (i-1) s) with
 | (Some ele_0, Some ele_i_prev) -> Some ((Cons ele_i_prev (fetch (drop s 1) (i-2))) ++ (Cons ele_0 (drop s i)))
 | _, _ -> None
 end
+
+(* Auxiliary functions for Storage *)
+let update_storage_from_address (addr: address) (v: uint256): storage =
+  function a -> if a = addr then v else m.mac_storage a
+
 
 (* TODO update the concrete definition *)
 (*
@@ -832,7 +838,13 @@ let interpreter: machine_state -> machine_state =
                    match a, b with 
                    | Some a', Some b' -> {m with mac_stack = push_stack st'' (if a' > b' then (UInt256.of_int 1) else (UInt256.of_int 0) ); mac_pc = m.mac_pc + 1}
                    | _, _ -> {m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1}
-                   end   
+                   end
+    | Some (SStore) -> let (st', a) = (pop_stack (m.mac_stack)) in 
+                  let (st'', b) = ( pop_stack st') in 
+                  match a, b with 
+                  | Some a', Some b' -> {m with mac_storage = update_storage_from_address a' b'; mac_stack = st''; mac_pc = m.mac_pc + 1}
+                  | _, _ -> {m with mac_status = (Error OutOfStack); mac_pc = m.mac_pc + 1}   
+                  end
     | Some (Sarith SLT) -> let (st', a) = (pop_stack (m.mac_stack)) in 
                    let (st'', b) = ( pop_stack st') in 
                    match a, b with 
