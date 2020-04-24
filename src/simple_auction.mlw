@@ -9,7 +9,7 @@ end
 
 
 module Unsigned
-  use int.Int
+use int.Int
   use mach.int.Bounded_int
   type uint
   constant min_uint : int = 0
@@ -18,15 +18,57 @@ module Unsigned
     constant min = min_uint
 end
 
+module UInt256
+	use mach.int.Unsigned
+	type uint256
+	constant max_uint256: int = 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
+	clone export mach.int.Unsigned with
+		type t = uint256,
+		constant max = max_uint256
+end 
 
 module SimpleAuction
 use int.Int
+use bool.Bool
 use ref.Ref
 use map.Map
 use array.Array
 use int.ComputerDivision
 use mach.int.Unsigned
+use UInt160
 use UInt256
+use Unsigned
 type address = uint160
 beneficiary : address
-auctionEndTime : 
+auctionEndTime : uint
+
+highestBidder : address
+highestBid : uint
+
+pendingReturns: map address uint
+ended: bool
+
+(* type event = map address uint
+HighestBidIncreased: event
+AuctionEnded: event *)
+
+type event = map address uint
+HighestBidIncreased: event
+AuctionEnded: event
+exception Ret
+
+let bid (bid_sender: address) (bid_value: uint) (highestBid: ref uint) (highestBidder: ref address)
+    (pendingReturns: map address uint): (address, uint)
+    require (bid_value > highestBid)
+    = 
+    try
+    begin
+        if !highestBid <> 0  then pendingReturns[!highestBidder] += !highestBid;
+        highestBidder := bid_sender;
+        highestBid := bid_value;
+    end;
+    raise Ret
+    with Ret -> (!highestBidder, !highestBid)
+end
+
+end
