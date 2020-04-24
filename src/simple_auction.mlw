@@ -1,0 +1,32 @@
+module UInt160
+	use mach.int.Unsigned
+	type uint160
+	constant max_uint160: int = 0xffffffffffffffffffffffffffffffffffffffff
+	clone export mach.int.Unsigned with
+		type t = uint160,
+		constant max = max_uint160
+end
+
+
+module Unsigned
+  use int.Int
+  use mach.int.Bounded_int
+  type uint
+  constant min_uint : int = 0
+  clone export mach.int.Bounded_int with
+    type t = uint
+    constant min = min_uint
+end
+
+
+module SimpleAuction
+use int.Int
+use ref.Ref
+use map.Map
+use array.Array
+use int.ComputerDivision
+use mach.int.Unsigned
+use UInt256
+type address = uint160
+beneficiary : address
+auctionEndTime : 
