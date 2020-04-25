@@ -16,27 +16,41 @@ use int.ComputerDivision
 use mach.int.Unsigned
 use UInt256
 
-let mul_safe (a:uint256) (b:uint256):uint256
-requires { in_bounds (to_int a * to_int b) }
-ensures {to_int a = 0 -> to_int result = 0 || to_int b = 0 -> to_int result = 0}
-ensures {to_int result <= UInt256.max_uint256}
-= a * b
-
-let div_safe (a:uint256) (b:uint256):uint256
-requires {to_int b > 0}
-ensures {to_int a = 0 -> to_int result = 0}
-ensures {to_int a <> 0 -> to_int a = (to_int result) * (to_int b) + mod (to_int a) (to_int b)}
-= a / b
-
-let sub_safe (a:uint256) (b:uint256):uint256
-requires {to_int a >= to_int b}
-ensures {to_int result <= to_int a}
-= a - b
-
 let add_safe (a:uint256) (b:uint256):uint256
 requires { in_bounds (to_int a + to_int b) }
 ensures { to_int result >= to_int a }
 ensures {to_int result <= UInt256.max_uint256}
 = a + b
+
+
+let sub_safe (a:uint256) (b:uint256):uint256
+requires {to_int a >= to_int b}
+ensures {to_int result <= to_int a}
+ensures {to_int result >= 0}
+= a - b
+
+let mul_safe (a:uint256) (b:uint256):uint256
+requires { in_bounds (to_int a * to_int b) }
+ensures {to_int a = 0 -> to_int result = 0 || to_int b = 0 -> to_int result = 0}
+ensures {to_int result <= UInt256.max_uint256}
+(* ensures { to_int a <> 0 -> div (to_int result) (to_int a) = to_int b } *)
+= if a = of_int 0 then of_int 0
+  else a * b
+
+
+let div_safe (a:uint256) (b:uint256):uint256
+requires {to_int b > 0}
+ensures {to_int result >= 0}
+ensures {to_int a = 0 -> to_int result = 0}
+ensures {to_int a <> 0 -> to_int a = (to_int result) * (to_int b) + mod (to_int a) (to_int b)}
+= a / b
+
+
+let mod_safe (a:uint256) (b:uint256):uint256
+requires {to_int b <> 0}
+ensures {to_int result >= 0}
+= a % b
+
+
 
 end

@@ -51,8 +51,26 @@ type pending_return_status = {
     return_user: address;
     return_amount: uint;
 }
+use real.Real
+type auction_status = {
+    highestBid: uint;
+    highestBidder: address;
+    beneficiary_amount: uint;
+}
+type auction_constant = {
+    beneficiary : address;
+    auctionEndTime : real
+}
+
+type auction_ended = {
+    finalBidder: address;
+    finalBid: uint
+}
 let update_return_amount (user: address) (amount: uint) (pending_st: pending_return_status): pending_return_status
     = {pending_st with return_user = user; return_amount = amount}
+
+let conclude_auction (auc_st: auction_status) (auc_end: auction_ended) : auction_ended
+    = {auc_end with finalBidder = auc_st.highestBidder; finalBid = auc_st.highestBid}
 
 let withdraw (withdraw_sender: address) (withdraw_request: map address uint) 
     (pendingReturns: map address uint)(pending_st: pending_return_status): (bool, pending_return_status)
@@ -70,57 +88,25 @@ let withdraw (withdraw_sender: address) (withdraw_request: map address uint)
     raise Ret
     with Ret -> True, !pending_new_st
 end
+
+let auctionEnd (current_time: real) (auc_const: auction_constant) (auc_st: auction_status) (ended: bool) (auc_end: auction_ended): (bool, auction_ended) 
+    requires { current_time >= auc_const.auctionEndTime}
+    requires {ended = False}
+    ensures {let (end_res, auc_end_status) = result in end_res = True -> auc_end_status.finalBidder = auc_st.highestBidder && auc_end_status.finalBid = auc_st.highestBid}
+    = 
+    let _ended = ref ended in
+    let _auc_end = ref auc_end in 
+    try
+    begin
+        _ended := True;
+        _auc_end := conclude_auction auc_st auc_end
+    end;
+    raise Ret
+    with Ret -> !_ended, !_auc_end 
 end
 
-(* let auctionEnd (current_time: real) (auctionEndTime: real) (ended: ref bool): event 
-    requires { current_time >= auctionEndTime}
-    requires {ended = False}
-    = 
-    try
-    begin
-        ended := True
-    end;
-    raise Ret
-    with Ret ->  *)
+end
 
 
 
 
-    (* let bid (bid_sender: address) (bid_value: uint) (auc_status: auction_status)
-        (pendingReturns: map address uint): auction_status
-        requires {bid_value > auc_status.highestBid}
-        ensures {let (auction_bidder, auction_bid) = result in 
-        auction_bidder = auction_status.highestBidder && auction_bid = auction_status.highestBid}
-        = 
-        let _highestBid = ref auc_status.highestBid in 
-        let _highestBidder = ref auc_status.highestBidder in 
-        try
-        begin
-            (* if (!_highestBid <> of_int 0) then 
-                begin
-                let _old_highest_bidder_value = !_pendingReturns !_highestBidder in
-                !_pendingReturns !_highestBidder <-  (_old_highest_bidder_value + !_highestBid);
-                end; *)
-            _highestBidder := bid_sender;
-            _highestBid := bid_value;
-            auction_status.highestBidder = !_highestBidder
-            auction_status.highestBidr = !_highestBid
-        end;
-        raise Ret
-        with Ret -> !_highestBidder, !_highestBid
-    end *)
-(* let bid (bid_sender: address) (bid_value: uint) (auc_status: auction_status) (pendingReturns: array uint):
-    auction_status
-    requires {bid_value > auc_status.highestBid}
-    ensures {auc_status.highestBidder = bid_sender && auc_status.highestBid = bid_value}
-    = 
-    try
-    begin
-        if ((to_int !auc_status.highestBid) <> 0) then 
-        pendingReturns[to_int auc_status.highestBidder] = pendingReturns[to_int auc_status.highestBidder] + auc_status.highestBid;
-        auc_status.highestBidder = bid_sender;
-        auc_status.highestBid = bid_value;
-    end;
-    raise Ret
-    with Ret -> auc_status
-end*)

@@ -15,31 +15,15 @@
  </goal>
 </theory>
 <theory name="SafeMath" proved="true">
- <goal name="VC mul_safe" expl="VC for mul_safe" proved="true">
+ <goal name="VC add_safe" expl="VC for add_safe" proved="true">
  <transf name="split_vc" proved="true" >
-  <goal name="VC mul_safe.0" expl="integer overflow" proved="true">
+  <goal name="VC add_safe.0" expl="integer overflow" proved="true">
   <proof prover="0"><result status="valid" time="0.00" steps="10"/></proof>
   </goal>
-  <goal name="VC mul_safe.1" expl="postcondition" proved="true">
-  <proof prover="0"><result status="valid" time="0.00" steps="15"/></proof>
+  <goal name="VC add_safe.1" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.01" steps="31"/></proof>
   </goal>
-  <goal name="VC mul_safe.2" expl="postcondition" proved="true">
-  <proof prover="0"><result status="valid" time="0.00" steps="15"/></proof>
-  </goal>
- </transf>
- </goal>
- <goal name="VC div_safe" expl="VC for div_safe" proved="true">
- <transf name="split_vc" proved="true" >
-  <goal name="VC div_safe.0" expl="division by zero" proved="true">
-  <proof prover="0"><result status="valid" time="0.00" steps="10"/></proof>
-  </goal>
-  <goal name="VC div_safe.1" expl="integer overflow" proved="true">
-  <proof prover="0"><result status="valid" time="0.01" steps="42"/></proof>
-  </goal>
-  <goal name="VC div_safe.2" expl="postcondition" proved="true">
-  <proof prover="0"><result status="valid" time="0.00" steps="16"/></proof>
-  </goal>
-  <goal name="VC div_safe.3" expl="postcondition" proved="true">
+  <goal name="VC add_safe.2" expl="postcondition" proved="true">
   <proof prover="0"><result status="valid" time="0.00" steps="16"/></proof>
   </goal>
  </transf>
@@ -52,18 +36,59 @@
   <goal name="VC sub_safe.1" expl="postcondition" proved="true">
   <proof prover="0"><result status="valid" time="0.00" steps="28"/></proof>
   </goal>
+  <goal name="VC sub_safe.2" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="14"/></proof>
+  </goal>
  </transf>
  </goal>
- <goal name="VC add_safe" expl="VC for add_safe" proved="true">
+ <goal name="VC mul_safe" expl="VC for mul_safe" proved="true">
  <transf name="split_vc" proved="true" >
-  <goal name="VC add_safe.0" expl="integer overflow" proved="true">
+  <goal name="VC mul_safe.0" expl="integer overflow" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="12"/></proof>
+  </goal>
+  <goal name="VC mul_safe.1" expl="integer overflow" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="14"/></proof>
+  </goal>
+  <goal name="VC mul_safe.2" expl="integer overflow" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="16"/></proof>
+  </goal>
+  <goal name="VC mul_safe.3" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="14"/></proof>
+  </goal>
+  <goal name="VC mul_safe.4" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="28"/></proof>
+  </goal>
+ </transf>
+ </goal>
+ <goal name="VC div_safe" expl="VC for div_safe" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC div_safe.0" expl="division by zero" proved="true">
   <proof prover="0"><result status="valid" time="0.00" steps="10"/></proof>
   </goal>
-  <goal name="VC add_safe.1" expl="postcondition" proved="true">
-  <proof prover="0"><result status="valid" time="0.01" steps="31"/></proof>
+  <goal name="VC div_safe.1" expl="integer overflow" proved="true">
+  <proof prover="0"><result status="valid" time="0.01" steps="42"/></proof>
   </goal>
-  <goal name="VC add_safe.2" expl="postcondition" proved="true">
-  <proof prover="0"><result status="valid" time="0.00" steps="16"/></proof>
+  <goal name="VC div_safe.2" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.01" steps="35"/></proof>
+  </goal>
+  <goal name="VC div_safe.3" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="18"/></proof>
+  </goal>
+  <goal name="VC div_safe.4" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.01" steps="18"/></proof>
+  </goal>
+ </transf>
+ </goal>
+ <goal name="VC mod_safe" expl="VC for mod_safe" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC mod_safe.0" expl="division by zero" proved="true">
+  <proof prover="0"><result status="valid" time="0.00" steps="10"/></proof>
+  </goal>
+  <goal name="VC mod_safe.1" expl="integer overflow" proved="true">
+  <proof prover="0"><result status="valid" time="0.01" steps="38"/></proof>
+  </goal>
+  <goal name="VC mod_safe.2" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.01" steps="39"/></proof>
   </goal>
  </transf>
  </goal>
