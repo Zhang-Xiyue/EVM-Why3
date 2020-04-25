@@ -1,0 +1,85 @@
+\usepackage{listings}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{amssymb}
+\usepackage{empheq}
+\usepackage{mathpartir}
+% \usepackage{pxfonts}
+\usepackage{fancybox}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage[normalem]{ulem}
+\usepackage{tikz}
+\usepackage{reotex}
+\usepackage{multicol}
+
+\newcommand{\lang}{\emph{Mediator}}
+
+\lstdefinelanguage{mediator}{
+    keywords = {
+        automaton,
+        system,
+        type,
+        in, out,
+        variables, transitions, statements, components, connections, 
+        interface, func,
+        sync,
+        internals,
+        begin, end,
+        return,
+        init, as,
+        int, bool, char, enum, real
+    },
+    alsodigit = {-}
+}
+
+\lstset{
+    basicstyle=\footnotesize\ttfamily,
+    numbers=left,
+    numberstyle=\scriptsize,
+    columns=flexible,
+    numbersep=10pt,
+    tabsize=2,
+    extendedchars=true,         %
+    breaklines=true,
+    keywordstyle=\bfseries,
+    stringstyle=\color{white}\ttfamily, % Farbe der String
+    xleftmargin=17pt,
+    %xrightmargin=30pt,
+    % frame=single,
+    framexleftmargin=17pt,
+    framexrightmargin=5pt,
+    framexbottommargin=4pt,
+    % backgroundcolor=\color{lightgray},
+    showstringspaces=false,
+    language=mediator,
+    moredelim=**[is][\color{red}]{@}{@}
+}
+
+\newcommand\smalltitle[1]{
+    \vspace{0.2cm}
+    \noindent\emph{{#1}.}
+}
+
+\newcommand\T{\rule{0pt}{2.6ex}}       % Top strut
+\newcommand\B{\rule[-1.2ex]{0pt}{0pt}} % Bottom strut
+
+% terminal symbols
+\newcommand{\tsym}[1]{\:\mbox{\texttt{#1}}\:}
+% non-terminal symbols
+\newcommand{\ntsym}[1]{\:\langle\mbox{\emph{#1}}\rangle\:}
+
+
+\newcommand*\widefbox[1]{\fbox{\hspace{1em}#1\hspace{1em}}}
+
+\newenvironment{bnf}{%
+    \footnotesize
+    % \vspace{-1em}
+    \setkeys{EmphEqEnv}{align*}%
+    \setkeys{EmphEqOpt}{box=\widefbox}%
+    \EmphEqMainEnv%
+}{
+    \endEmphEqMainEnv
+    % \vspace{-1em}
+}

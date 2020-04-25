@@ -1,0 +1,552 @@
+theory Task
+  type int
+  
+  type real
+  
+  type string
+  
+  predicate (=) 'a 'a
+  
+  (* use why3.BuiltIn.BuiltIn *)
+  
+  type bool =
+    | True
+    | False
+  
+  (* use why3.Bool.Bool *)
+  
+  type tuple0 =
+    | Tuple0
+  
+  (* use why3.Tuple0.Tuple01 *)
+  
+  type unit = unit
+  
+  (* use why3.Unit.Unit *)
+  
+  constant zero : int = 0
+  
+  constant one : int = 1
+  
+  function (-_) int : int
+  
+  function (+) int int : int
+  
+  function ( * ) int int : int
+  
+  predicate (<) int int
+  
+  function (-) (x:int) (y:int) : int = x + (- y)
+  
+  predicate (>) (x:int) (y:int) = y < x
+  
+  predicate (<=) (x:int) (y:int) = x < y \/ x = y
+  
+  predicate (>=) (x:int) (y:int) = y <= x
+  
+  Assoc : forall x:int, y:int, z:int. ((x + y) + z) = (x + (y + z))
+  
+  (* clone algebra.Assoc with type t = int, function op = (+),
+    prop Assoc1 = Assoc,  *)
+  
+  Unit_def_l : forall x:int. (zero + x) = x
+  
+  Unit_def_r : forall x:int. (x + zero) = x
+  
+  (* clone algebra.Monoid with type t1 = int, constant unit = zero,
+    function op1 = (+), prop Unit_def_r1 = Unit_def_r,
+    prop Unit_def_l1 = Unit_def_l, prop Assoc2 = Assoc,  *)
+  
+  Inv_def_l : forall x:int. ((- x) + x) = zero
+  
+  Inv_def_r : forall x:int. (x + (- x)) = zero
+  
+  (* clone algebra.Group with type t2 = int, function inv = (-_),
+    constant unit1 = zero, function op2 = (+), prop Inv_def_r1 = Inv_def_r,
+    prop Inv_def_l1 = Inv_def_l, prop Unit_def_r2 = Unit_def_r,
+    prop Unit_def_l2 = Unit_def_l, prop Assoc3 = Assoc,  *)
+  
+  Comm : forall x:int, y:int. (x + y) = (y + x)
+  
+  (* clone algebra.Comm with type t3 = int, function op3 = (+),
+    prop Comm1 = Comm,  *)
+  
+  (* meta AC function (+) *)
+  
+  (* clone algebra.CommutativeGroup with type t4 = int, function inv1 = (-_),
+    constant unit2 = zero, function op4 = (+), prop Comm2 = Comm,
+    prop Inv_def_r2 = Inv_def_r, prop Inv_def_l2 = Inv_def_l,
+    prop Unit_def_r3 = Unit_def_r, prop Unit_def_l3 = Unit_def_l,
+    prop Assoc4 = Assoc,  *)
+  
+  Assoc5 : forall x:int, y:int, z:int. ((x * y) * z) = (x * (y * z))
+  
+  (* clone algebra.Assoc with type t = int, function op = ( * ),
+    prop Assoc1 = Assoc5,  *)
+  
+  Mul_distr_l :
+    forall x:int, y:int, z:int. (x * (y + z)) = ((x * y) + (x * z))
+  
+  Mul_distr_r :
+    forall x:int, y:int, z:int. ((y + z) * x) = ((y * x) + (z * x))
+  
+  (* clone algebra.Ring with type t5 = int, function ( *') = ( * ),
+    function (-'_) = (-_), function (+') = (+), constant zero1 = zero,
+    prop Mul_distr_r1 = Mul_distr_r, prop Mul_distr_l1 = Mul_distr_l,
+    prop Assoc6 = Assoc5, prop Comm3 = Comm, prop Inv_def_r3 = Inv_def_r,
+    prop Inv_def_l3 = Inv_def_l, prop Unit_def_r4 = Unit_def_r,
+    prop Unit_def_l4 = Unit_def_l, prop Assoc7 = Assoc,  *)
+  
+  Comm4 : forall x:int, y:int. (x * y) = (y * x)
+  
+  (* clone algebra.Comm with type t3 = int, function op3 = ( * ),
+    prop Comm1 = Comm4,  *)
+  
+  (* meta AC function ( * ) *)
+  
+  (* clone algebra.CommutativeRing with type t6 = int,
+    function ( *'') = ( * ), function (-''_) = (-_), function (+'') = (+),
+    constant zero2 = zero, prop Comm5 = Comm4,
+    prop Mul_distr_r2 = Mul_distr_r, prop Mul_distr_l2 = Mul_distr_l,
+    prop Assoc8 = Assoc5, prop Comm6 = Comm, prop Inv_def_r4 = Inv_def_r,
+    prop Inv_def_l4 = Inv_def_l, prop Unit_def_r5 = Unit_def_r,
+    prop Unit_def_l5 = Unit_def_l, prop Assoc9 = Assoc,  *)
+  
+  Unitary : forall x:int. (one * x) = x
+  
+  NonTrivialRing : not zero = one
+  
+  (* clone algebra.UnitaryCommutativeRing with type t7 = int,
+    constant one1 = one, function ( *''') = ( * ), function (-'''_) = (-_),
+    function (+''') = (+), constant zero3 = zero,
+    prop NonTrivialRing1 = NonTrivialRing, prop Unitary1 = Unitary,
+    prop Comm7 = Comm4, prop Mul_distr_r3 = Mul_distr_r,
+    prop Mul_distr_l3 = Mul_distr_l, prop Assoc10 = Assoc5,
+    prop Comm8 = Comm, prop Inv_def_r5 = Inv_def_r,
+    prop Inv_def_l5 = Inv_def_l, prop Unit_def_r6 = Unit_def_r,
+    prop Unit_def_l6 = Unit_def_l, prop Assoc11 = Assoc,  *)
+  
+  (* clone relations.EndoRelation with type t8 = int, predicate rel = (<=),
+     *)
+  
+  Refl : forall x:int. x <= x
+  
+  (* clone relations.Reflexive with type t9 = int, predicate rel1 = (<=),
+    prop Refl1 = Refl,  *)
+  
+  (* clone relations.EndoRelation with type t8 = int, predicate rel = (<=),
+     *)
+  
+  Trans : forall x:int, y:int, z:int. x <= y -> y <= z -> x <= z
+  
+  (* clone relations.Transitive with type t10 = int, predicate rel2 = (<=),
+    prop Trans1 = Trans,  *)
+  
+  (* clone relations.PreOrder with type t11 = int, predicate rel3 = (<=),
+    prop Trans2 = Trans, prop Refl2 = Refl,  *)
+  
+  (* clone relations.EndoRelation with type t8 = int, predicate rel = (<=),
+     *)
+  
+  Antisymm : forall x:int, y:int. x <= y -> y <= x -> x = y
+  
+  (* clone relations.Antisymmetric with type t12 = int,
+    predicate rel4 = (<=), prop Antisymm1 = Antisymm,  *)
+  
+  (* clone relations.PartialOrder with type t13 = int, predicate rel5 = (<=),
+    prop Antisymm2 = Antisymm, prop Trans3 = Trans, prop Refl3 = Refl,  *)
+  
+  (* clone relations.EndoRelation with type t8 = int, predicate rel = (<=),
+     *)
+  
+  Total : forall x:int, y:int. x <= y \/ y <= x
+  
+  (* clone relations.Total with type t14 = int, predicate rel6 = (<=),
+    prop Total1 = Total,  *)
+  
+  (* clone relations.TotalOrder with type t15 = int, predicate rel7 = (<=),
+    prop Total2 = Total, prop Antisymm3 = Antisymm, prop Trans4 = Trans,
+    prop Refl4 = Refl,  *)
+  
+  ZeroLessOne : zero <= one
+  
+  CompatOrderAdd : forall x:int, y:int, z:int. x <= y -> (x + z) <= (y + z)
+  
+  CompatOrderMult :
+    forall x:int, y:int, z:int. x <= y -> zero <= z -> (x * z) <= (y * z)
+  
+  (* clone algebra.OrderedUnitaryCommutativeRing with type t16 = int,
+    predicate (<=') = (<=), constant one2 = one, function ( *'''') = ( * ),
+    function (-''''_) = (-_), function (+'''') = (+), constant zero4 = zero,
+    prop CompatOrderMult1 = CompatOrderMult,
+    prop CompatOrderAdd1 = CompatOrderAdd, prop ZeroLessOne1 = ZeroLessOne,
+    prop Total3 = Total, prop Antisymm4 = Antisymm, prop Trans5 = Trans,
+    prop Refl5 = Refl, prop NonTrivialRing2 = NonTrivialRing,
+    prop Unitary2 = Unitary, prop Comm9 = Comm4,
+    prop Mul_distr_r4 = Mul_distr_r, prop Mul_distr_l4 = Mul_distr_l,
+    prop Assoc12 = Assoc5, prop Comm10 = Comm, prop Inv_def_r6 = Inv_def_r,
+    prop Inv_def_l6 = Inv_def_l, prop Unit_def_r7 = Unit_def_r,
+    prop Unit_def_l7 = Unit_def_l, prop Assoc13 = Assoc,  *)
+  
+  (* use int.Int *)
+  
+  constant min_unsigned : int = 0
+  
+  type t17
+  
+  constant max : int
+  
+  function to_int t17 : int
+  
+  (* meta coercion function to_int *)
+  
+  (* meta model_projection function to_int *)
+  
+  predicate in_bounds (n:int) = min_unsigned <= n /\ n <= max
+  
+  to_int_in_bounds : forall n:t17. in_bounds n
+  
+  extensionality : forall x:t17, y:t17. to_int x = to_int y -> x = y
+  
+  function abs (x:int) : int = if x >= 0 then x else - x
+  
+  Abs_le : forall x:int, y:int. abs x <= y <-> (- y) <= x /\ x <= y
+  
+  Abs_pos : forall x:int. abs x >= 0
+  
+  (* use int.Abs *)
+  
+  function div int int : int
+  
+  function mod int int : int
+  
+  axiom Div_mod :
+    forall x:int, y:int. not y = 0 -> x = ((y * div x y) + mod x y)
+  
+  axiom Div_bound :
+    forall x:int, y:int. x >= 0 /\ y > 0 -> 0 <= div x y /\ div x y <= x
+  
+  axiom Mod_bound :
+    forall x:int, y:int. not y = 0 -> (- abs y) < mod x y /\ mod x y < abs y
+  
+  axiom Div_sign_pos : forall x:int, y:int. x >= 0 /\ y > 0 -> div x y >= 0
+  
+  axiom Div_sign_neg : forall x:int, y:int. x <= 0 /\ y > 0 -> div x y <= 0
+  
+  axiom Mod_sign_pos :
+    forall x:int, y:int. x >= 0 /\ not y = 0 -> mod x y >= 0
+  
+  axiom Mod_sign_neg :
+    forall x:int, y:int. x <= 0 /\ not y = 0 -> mod x y <= 0
+  
+  Rounds_toward_zero :
+    forall x:int, y:int. not y = 0 -> abs (div x y * y) <= abs x
+  
+  Div_1 : forall x:int. div x 1 = x
+  
+  Mod_1 : forall x:int. mod x 1 = 0
+  
+  Div_inf : forall x:int, y:int. 0 <= x /\ x < y -> div x y = 0
+  
+  Mod_inf : forall x:int, y:int. 0 <= x /\ x < y -> mod x y = x
+  
+  Div_mult :
+    forall x:int, y:int, z:int [div ((x * y) + z) x].
+     x > 0 /\ y >= 0 /\ z >= 0 -> div ((x * y) + z) x = (y + div z x)
+  
+  Mod_mult :
+    forall x:int, y:int, z:int [mod ((x * y) + z) x].
+     x > 0 /\ y >= 0 /\ z >= 0 -> mod ((x * y) + z) x = mod z x
+  
+  (* use int.ComputerDivision *)
+  
+  (* clone mach.int.Bounded_int with type t18 = t17,
+    predicate in_bounds1 = in_bounds, function to_int1 = to_int,
+    constant max1 = max, constant min = min_unsigned,
+    prop extensionality1 = extensionality,
+    prop to_int_in_bounds1 = to_int_in_bounds,  *)
+  
+  constant zero_unsigned : t17
+  
+  axiom zero_unsigned_is_zero : to_int zero_unsigned = 0
+  
+  constant radix : int
+  
+  axiom radix_def : radix = (max + 1)
+  
+  (* use mach.int.Unsigned *)
+  
+  type uint256
+  
+  constant max_uint256 : int =
+    0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+  
+  constant min_unsigned1 : int = 0
+  
+  function to_int2 uint256 : int
+  
+  (* meta coercion function to_int2 *)
+  
+  (* meta model_projection function to_int2 *)
+  
+  predicate in_bounds2 (n:int) = min_unsigned1 <= n /\ n <= max_uint256
+  
+  to_int_in_bounds2 : forall n:uint256. in_bounds2 n
+  
+  extensionality2 :
+    forall x:uint256, y:uint256. to_int2 x = to_int2 y -> x = y
+  
+  (* clone mach.int.Bounded_int with type t18 = uint256,
+    predicate in_bounds1 = in_bounds2, function to_int1 = to_int2,
+    constant max1 = max_uint256, constant min = min_unsigned1,
+    prop extensionality1 = extensionality2,
+    prop to_int_in_bounds1 = to_int_in_bounds2,  *)
+  
+  constant zero_unsigned1 : uint256
+  
+  zero_unsigned_is_zero1 : to_int2 zero_unsigned1 = 0
+  
+  constant radix1 : int
+  
+  radix_def1 : radix1 = (max_uint256 + 1)
+  
+  (* clone mach.int.Unsigned with type t17 = uint256,
+    constant radix = radix1, constant zero_unsigned = zero_unsigned1,
+    predicate in_bounds = in_bounds2, function to_int = to_int2,
+    constant max = max_uint256, constant min_unsigned = min_unsigned1,
+    prop radix_def = radix_def1,
+    prop zero_unsigned_is_zero = zero_unsigned_is_zero1,
+    prop extensionality = extensionality2,
+    prop to_int_in_bounds = to_int_in_bounds2,  *)
+  
+  (* use UInt256 *)
+  
+  type list 'a =
+    | Nil
+    | Cons 'a (list 'a)
+  
+  predicate is_nil (l:list 'a) =
+    match l with
+    | Nil -> true
+    | Cons _ _ -> false
+    end
+  
+  is_nil'spec : forall l:list 'a. is_nil l <-> l = (Nil: list 'a)
+  
+  (* use list.List *)
+  
+  function length (l:list 'a) : int =
+    match l with
+    | Nil -> 0
+    | Cons _ r -> 1 + length r
+    end
+  
+  Length_nonnegative : forall l:list 'a. length l >= 0
+  
+  Length_nil : forall l:list 'a. length l = 0 <-> l = (Nil: list 'a)
+  
+  (* use list.Length *)
+  
+  predicate mem (x:'a) (l:list 'a) =
+    match l with
+    | Nil -> false
+    | Cons y r -> x = y \/ mem x r
+    end
+  
+  (* use list.Mem *)
+  
+  type option 'a =
+    | None
+    | Some 'a
+  
+  predicate is_none (o:option 'a) =
+    match o with
+    | None -> true
+    | Some _ -> false
+    end
+  
+  is_none'spec : forall o:option 'a. is_none o <-> o = (None: option 'a)
+  
+  (* use option.Option *)
+  
+  function nth (n:int) (l:list 'a) : option 'a =
+    match l with
+    | Nil -> None: option 'a
+    | Cons x r -> if n = 0 then Some x else nth (n - 1) r
+    end
+  
+  (* use list.Nth *)
+  
+  function hd (l:list 'a) : option 'a =
+    match l with
+    | Nil -> None: option 'a
+    | Cons h _ -> Some h
+    end
+  
+  function tl (l:list 'a) : option (list 'a) =
+    match l with
+    | Nil -> None: option (list 'a)
+    | Cons _ t -> Some t
+    end
+  
+  (* use list.HdTl *)
+  
+  Nth_tl :
+    forall l1:list 'a, l2:list 'a.
+     tl l1 = Some l2 ->
+     (forall i:int. not i = (- 1) -> nth i l2 = nth (i + 1) l1)
+  
+  Nth0_head : forall l:list 'a. nth 0 l = hd l
+  
+  (* use list.NthHdTl *)
+  
+  function (++) (l1:list 'a) (l2:list 'a) : list 'a =
+    match l1 with
+    | Nil -> l2
+    | Cons x1 r1 -> Cons x1 (r1 ++ l2)
+    end
+  
+  Append_assoc :
+    forall l1:list 'a, l2:list 'a, l3:list 'a.
+     (l1 ++ (l2 ++ l3)) = ((l1 ++ l2) ++ l3)
+  
+  Append_l_nil : forall l:list 'a. (l ++ (Nil: list 'a)) = l
+  
+  Append_length :
+    forall l1:list 'a, l2:list 'a.
+     length (l1 ++ l2) = (length l1 + length l2)
+  
+  mem_append :
+    forall x:'a, l1:list 'a, l2:list 'a.
+     mem x (l1 ++ l2) <-> mem x l1 \/ mem x l2
+  
+  mem_decomp :
+    forall x:'a, l:list 'a.
+     mem x l -> (exists l1:list 'a, l2:list 'a. l = (l1 ++ Cons x l2))
+  
+  (* use list.Append *)
+  
+  function reverse (l:list 'a) : list 'a =
+    match l with
+    | Nil -> Nil: list 'a
+    | Cons x r -> reverse r ++ Cons x (Nil: list 'a)
+    end
+  
+  reverse_append :
+    forall l1:list 'a, l2:list 'a, x:'a.
+     (reverse (Cons x l1) ++ l2) = (reverse l1 ++ Cons x l2)
+  
+  reverse_cons :
+    forall l:list 'a, x:'a.
+     reverse (Cons x l) = (reverse l ++ Cons x (Nil: list 'a))
+  
+  cons_reverse :
+    forall l:list 'a, x:'a.
+     Cons x (reverse l) = reverse (l ++ Cons x (Nil: list 'a))
+  
+  reverse_reverse : forall l:list 'a. reverse (reverse l) = l
+  
+  reverse_mem : forall l:list 'a, x:'a. mem x l <-> mem x (reverse l)
+  
+  Reverse_length : forall l:list 'a. length (reverse l) = length l
+  
+  (* use list.Reverse *)
+  
+  function rev_append (s:list 'a) (t:list 'a) : list 'a =
+    match s with
+    | Cons x r -> rev_append r (Cons x t)
+    | Nil -> t
+    end
+  
+  rev_append_append_l :
+    forall r:list 'a, s:list 'a, t:list 'a.
+     rev_append (r ++ s) t = rev_append s (rev_append r t)
+  
+  rev_append_length :
+    forall s:list 'a, t:list 'a.
+     length (rev_append s t) = (length s + length t)
+  
+  rev_append_def :
+    forall r:list 'a, s:list 'a. rev_append r s = (reverse r ++ s)
+  
+  rev_append_append_r :
+    forall r:list 'a, s:list 'a, t:list 'a.
+     rev_append r (s ++ t) = rev_append (rev_append s r) t
+  
+  (* use list.RevAppend *)
+  
+  function num_occ (x:'a) (l:list 'a) : int =
+    match l with
+    | Nil -> 0
+    | Cons y r -> (if x = y then 1 else 0) + num_occ x r
+    end
+  
+  Num_Occ_NonNeg : forall x:'a, l:list 'a. num_occ x l >= 0
+  
+  Mem_Num_Occ : forall x:'a, l:list 'a. mem x l <-> num_occ x l > 0
+  
+  Append_Num_Occ :
+    forall x:'a, l1:list 'a, l2:list 'a.
+     num_occ x (l1 ++ l2) = (num_occ x l1 + num_occ x l2)
+  
+  reverse_num_occ :
+    forall x:'a, l:list 'a. num_occ x l = num_occ x (reverse l)
+  
+  (* use list.NumOcc *)
+  
+  predicate permut (l1:list 'a) (l2:list 'a) =
+    forall x:'a. num_occ x l1 = num_occ x l2
+  
+  Permut_refl : forall l:list 'a. permut l l
+  
+  Permut_sym : forall l1:list 'a, l2:list 'a. permut l1 l2 -> permut l2 l1
+  
+  Permut_trans :
+    forall l1:list 'a, l2:list 'a, l3:list 'a.
+     permut l1 l2 -> permut l2 l3 -> permut l1 l3
+  
+  Permut_cons :
+    forall x:'a, l1:list 'a, l2:list 'a.
+     permut l1 l2 -> permut (Cons x l1) (Cons x l2)
+  
+  Permut_swap :
+    forall x:'a, y:'a, l:list 'a.
+     permut (Cons x (Cons y l)) (Cons y (Cons x l))
+  
+  Permut_cons_append :
+    forall x:'a, l1:list 'a, l2:list 'a.
+     permut (Cons x l1 ++ l2) (l1 ++ Cons x l2)
+  
+  Permut_assoc :
+    forall l1:list 'a, l2:list 'a, l3:list 'a.
+     permut ((l1 ++ l2) ++ l3) (l1 ++ (l2 ++ l3))
+  
+  Permut_append :
+    forall l1:list 'a, l2:list 'a, k1:list 'a, k2:list 'a.
+     permut l1 k1 -> permut l2 k2 -> permut (l1 ++ l2) (k1 ++ k2)
+  
+  Permut_append_swap :
+    forall l1:list 'a, l2:list 'a. permut (l1 ++ l2) (l2 ++ l1)
+  
+  Permut_mem :
+    forall x:'a, l1:list 'a, l2:list 'a. permut l1 l2 -> mem x l1 -> mem x l2
+  
+  Permut_length :
+    forall l1:list 'a, l2:list 'a. permut l1 l2 -> length l1 = length l2
+  
+  (* use list.Permut *)
+  
+  (* use list.ListRich *)
+  
+  type machword = uint256
+  
+  goal fetch'vc :
+    forall lst:list uint256, n:int.
+     0 <= n /\ n <= length lst ->
+     not (not n > length lst -> n = 0) ->
+     match lst with
+     | Nil -> true
+     | Cons x r ->
+         let o = n - 1 in (0 <= n /\ o < n) /\ 0 <= o /\ o <= length r
+     end
+end

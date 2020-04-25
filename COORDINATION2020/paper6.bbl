@@ -1,0 +1,80 @@
+\begin{thebibliography}{10}
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\urlprefix}{URL }
+\providecommand{\doi}[1]{https://doi.org/#1}
+
+\bibitem{cryptape}
+{A Ruby implementation of Ethereum}:
+  \url{https://github.com/cryptape/ruby-ethereum}, last accessed April 2, 2019
+
+\bibitem{atzei2016survey}
+Atzei, N., Bartoletti, M., Cimoli, T.: A survey of attacks on ethereum smart
+  contracts. IACR Cryptology ePrint Archive  \textbf{2016}, ~1007 (2016)
+
+\bibitem{bhargavan2016formal}
+Bhargavan, K., Delignat{-}Lavaud, A., Fournet, C., Gollamudi, A., Gonthier, G.,
+  Kobeissi, N., Kulatova, N., Rastogi, A., Sibut{-}Pinote, T., Swamy, N.,
+  B{\'{e}}guelin, S.Z.: Formal verification of smart contracts: Short paper.
+  In: Proceedings of PLAS@CCS 2016. pp. 91--96. {ACM} (2016)
+
+\bibitem{Ethereum}
+Ethereum: \url{https://github.com/ethereum}, last ccessed April 2, 2019
+
+\bibitem{filliatre2013why3}
+Filli{\^a}tre, J.C., Paskevich, A.: Why3-where programs meet provers. In:
+  European Symposium on Programming. pp. 125--128. Springer (2013)
+
+\bibitem{hildenbrandt2017kevm}
+Hildenbrandt, E., Saxena, M., Rodrigues, N., Zhu, X., Daian, P., Guth, D.,
+  Moore, B.M., Park, D., Zhang, Y., Stefanescu, A., Rosu, G.: {KEVM:} {A}
+  complete formal semantics of the ethereum virtual machine. In: 31st {IEEE}
+  Computer Security Foundations Symposium, {CSF} 2018, Oxford, United Kingdom,
+  July 9-12, 2018. pp. 204--217. {IEEE} Computer Society (2018)
+
+\bibitem{hirai2017defining}
+Hirai, Y.: Defining the ethereum virtual machine for interactive theorem
+  provers. In: International Conference on Financial Cryptography and Data
+  Security. pp. 520--535. Springer (2017)
+
+\bibitem{LBHN16}
+Lin, Y., Blackburn, S.M., Hosking, A.L., Norrish, M.: Rust as a language for
+  high performance {GC} implementation. In: Proceedings of the 2016 {ACM}
+  {SIGPLAN} International Symposium on Memory Management, Santa Barbara, CA,
+  USA, June 14 - 14, 2016. pp. 89--98. ACM (2016)
+
+\bibitem{luu2016making}
+Luu, L., Chu, D.H., Olickel, H., Saxena, P., Hobor, A.: Making smart contracts
+  smarter. In: Proceedings of the 2016 ACM SIGSAC Conference on Computer and
+  Communications Security. pp. 254--269. ACM (2016)
+
+\bibitem{nakamoto2008bitcoin}
+Nakamoto, S., et~al.: Bitcoin: A peer-to-peer electronic cash system (2008)
+
+\bibitem{vmgo}
+{Official Go implementation of the Ethereum protocol}:
+  \url{https://github.com/ethereum/go-ethereum}, last accessed April 2, 2019
+
+\bibitem{sergey2017concurrent}
+Sergey, I., Hobor, A.: A concurrent perspective on smart contracts. In:
+  International Conference on Financial Cryptography and Data Security. pp.
+  478--493. Springer (2017)
+
+\bibitem{solidity}
+{Solidity Documentation}: \url{https://solidity.readthedocs.io/en/v0.5.6/},
+  last ccessed April 2, 2019
+
+\bibitem{hevm}
+{The Hevm Project}:
+  \url{https://github.com/dapphub/dapptools/tree/master/src/hevm}, last
+  accessed April 2, 2019
+
+\bibitem{wood2014ethereum}
+Wood, G.: Ethereum: A secure decentralised generalised transaction ledger.
+  Ethereum project yellow paper  \textbf{151},  1--32 (2014)
+
+\bibitem{ZXDCW18}
+Zheng, Z., Xie, S., Dai, H., Chen, X., Wang, H.: Blockchain challenges and
+  opportunities: a survey. {International Journal of Web and Grid Services}
+  \textbf{14}(4),  352--375 (2018)
+
+\end{thebibliography}
