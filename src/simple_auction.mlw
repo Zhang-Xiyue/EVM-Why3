@@ -14,6 +14,8 @@ module UInt
         type t = uint,
         constant min = min_uint
 end
+
+
 module SimpleAuction
 use int.Int
 use bool.Bool
@@ -24,23 +26,6 @@ use UInt160
 use UInt
 
 type address = uint160
-(* beneficiary : address
-auctionEndTime : uint *)
-(* pendingReturns: map address uint
-ended: bool *)
-
-(* type event = map address uint
-HighestBidIncreased: event
-AuctionEnded: event *)
-type auction_status = {
-    highestBid: uint;
-    highestBidder: address;
-    beneficiary_amount: uint
-
-}
-(* type event = map address uint
-HighestBidIncreased: event
-AuctionEnded: event *)
 exception Ret
 let bid (bid_sender: address) (bid_value: uint) (highestBid: uint) (highestBidder: address)
     (pendingReturns: (map address uint)): (address, uint, uint)
@@ -62,17 +47,30 @@ let bid (bid_sender: address) (bid_value: uint) (highestBid: uint) (highestBidde
     with Ret -> !_highestBidder, !_highestBid, !_amountReturns
 end
 
-(* Exception  *)
-(* let withdraw (bid_sender: address) (auction_arr: map address uint )(pendingReturns: map address uint): bool
-    (* requires  *)
+type pending_return_status = {
+    return_user: address;
+    return_amount: uint;
+}
+let update_return_amount (user: address) (amount: uint) (pending_st: pending_return_status): pending_return_status
+    = {pending_st with return_user = user; return_amount = amount}
+
+let withdraw (withdraw_sender: address) (withdraw_request: map address uint) 
+    (pendingReturns: map address uint)(pending_st: pending_return_status): (bool, pending_return_status)
+    requires {in_bounds 0}
+    requires {withdraw_request withdraw_sender = pendingReturns withdraw_sender} 
     = 
+    let pending_new_st = ref pending_st in 
+    let return_amount = ref (pendingReturns withdraw_sender) in
     try
     begin
-        if pendingReturns[bid_sender] > 0 then pendingReturns[bid_sender] = 0;
+        if !return_amount <> UInt.of_int 0 then 
+        return_amount := UInt.of_int 0; 
     end;
+    pending_new_st := update_return_amount withdraw_sender !return_amount pending_st;
     raise Ret
-    with Ret -> True
-end *)
+    with Ret -> True, !pending_new_st
+end
+end
 
 (* let auctionEnd (current_time: real) (auctionEndTime: real) (ended: ref bool): event 
     requires { current_time >= auctionEndTime}
@@ -86,7 +84,7 @@ end *)
     with Ret ->  *)
 
 
-end
+
 
     (* let bid (bid_sender: address) (bid_value: uint) (auc_status: auction_status)
         (pendingReturns: map address uint): auction_status
@@ -125,4 +123,4 @@ end
     end;
     raise Ret
     with Ret -> auc_status
-end *)
+end*)
