@@ -3,10 +3,6 @@
 \providecommand{\urlprefix}{URL }
 \providecommand{\doi}[1]{https://doi.org/#1}
 
-\bibitem{cryptape}
-{A Ruby implementation of Ethereum}:
-  \url{https://github.com/cryptape/ruby-ethereum}, last accessed April 2, 2019
-
 \bibitem{atzei2016survey}
 Atzei, N., Bartoletti, M., Cimoli, T.: A survey of attacks on ethereum smart
   contracts. IACR Cryptology ePrint Archive  \textbf{2016}, ~1007 (2016)
@@ -49,10 +45,6 @@ Luu, L., Chu, D.H., Olickel, H., Saxena, P., Hobor, A.: Making smart contracts
 
 \bibitem{nakamoto2008bitcoin}
 Nakamoto, S., et~al.: Bitcoin: A peer-to-peer electronic cash system (2008)
-
-\bibitem{vmgo}
-{Official Go implementation of the Ethereum protocol}:
-  \url{https://github.com/ethereum/go-ethereum}, last accessed April 2, 2019
 
 \bibitem{sergey2017concurrent}
 Sergey, I., Hobor, A.: A concurrent perspective on smart contracts. In:

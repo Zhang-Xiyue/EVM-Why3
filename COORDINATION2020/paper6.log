@@ -1,13 +1,13 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.9.16)  25 APR 2020 22:28
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.9.16)  26 APR 2020 17:17
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**/Users/selinazhang/Desktop/COORDINATION2020/paper6.tex
-(/Users/selinazhang/Desktop/COORDINATION2020/paper6.tex
+**/Users/selinazhang/Documents/GitHub/EVM-Why3/COORDINATION2020/paper6.tex
+(/Users/selinazhang/Documents/GitHub/EVM-Why3/COORDINATION2020/paper6.tex
 LaTeX2e <2018-04-01> patch level 2
 Babel <3.18> and hyphenation patterns for 84 language(s) loaded.
-(/Users/selinazhang/Desktop/COORDINATION2020/llncs.cls
+(/Users/selinazhang/Documents/GitHub/EVM-Why3/COORDINATION2020/llncs.cls
 Document Class: llncs 2018/03/10 v2.20 
  LaTeX document class for Lecture Notes in Computer Science
 (/usr/local/texlive/2018/texmf-dist/tex/latex/base/article.cls
@@ -602,7 +602,7 @@ Package: array 2018/04/07 v2.4g Tabular extension package (FMi)
 ) (/usr/local/texlive/2018/texmf-dist/tex/latex/url/url.sty
 \Urlmuskip=\muskip11
 Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
-) (/Users/selinazhang/Desktop/COORDINATION2020/common.tex (/usr/local/texlive/2018/texmf-dist/tex/latex/base/textcomp.sty
+) (/Users/selinazhang/Documents/GitHub/EVM-Why3/COORDINATION2020/common.tex (/usr/local/texlive/2018/texmf-dist/tex/latex/base/textcomp.sty
 Package: textcomp 2017/04/05 v2.0i Standard LaTeX package
 Package textcomp Info: Sub-encoding information:
 (textcomp)               5 = only ISO-Adobe without \textcurrency
@@ -829,7 +829,7 @@ Package: mathpartir 2016/02/24 version 1.3.2 Math Paragraph for Typesetting Infe
 \ULC@box=\box86
 Package: ulem 2012/05/18
 \ULdepth=\dimen304
-)) (/Users/selinazhang/Desktop/COORDINATION2020/paper6.aux)
+)) (/Users/selinazhang/Documents/GitHub/EVM-Why3/COORDINATION2020/paper6.aux)
 \openout1 = `paper6.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 39.
@@ -932,13 +932,13 @@ File: t1cmtt.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 
 {/usr/local/texlive/2018/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
 
-pdfTeX warning: pdflatex (file /Users/selinazhang/Desktop/COORDINATION2020/framework.pdf): PDF inclusion: found PDF version <1.6>, but at most version <1.5> allowed
+pdfTeX warning: pdflatex (file /Users/selinazhang/Documents/GitHub/EVM-Why3/COORDINATION2020/framework.pdf): PDF inclusion: found PDF version <1.6>, but at most version <1.5> allowed
 <framework.pdf, id=20, 844.2451pt x 380.69026pt>
 File: framework.pdf Graphic file (type pdf)
 <use framework.pdf>
 Package pdftex.def Info: framework.pdf  used on input line 118.
 (pdftex.def)             Requested size: 844.24304pt x 380.68932pt.
-[2 </Users/selinazhang/Desktop/COORDINATION2020/framework.pdf>]
+[2 </Users/selinazhang/Documents/GitHub/EVM-Why3/COORDINATION2020/framework.pdf>]
 Overfull \hbox (9.36829pt too wide) has occurred while \output is active
                                    [] []
  []
@@ -954,52 +954,52 @@ Overfull \hbox (9.36829pt too wide) has occurred while \output is active
                                    [] []
  []
 
-[5 </Users/selinazhang/Desktop/COORDINATION2020/runninginPE.pdf, page is rotated 90 degrees>]
-Overfull \hbox (9.7893pt too wide) in paragraph at lines 233--233
+[5 </Users/selinazhang/Documents/GitHub/EVM-Why3/COORDINATION2020/runninginPE.pdf, page is rotated 90 degrees>]
+Overfull \hbox (9.7893pt too wide) in paragraph at lines 228--228
 []\T1/cmtt/m/n/10 to_int a = (to_int result) * (to_int b) + mod (to_int a) (to_int b)}[] 
  []
 
 
-Overfull \hbox (4.54059pt too wide) in paragraph at lines 245--245
+Overfull \hbox (4.54059pt too wide) in paragraph at lines 240--240
 []  \T1/cmtt/m/n/10 (forall result:uint256. result = div a b -> to_int result >= 0 &&[] 
  []
 
 
-Overfull \hbox (25.53546pt too wide) in paragraph at lines 248--248
-[]  \T1/cmtt/m/n/10 to_int a = ((to_int result * to_int b) + mod (to_int a) (to_int b))))[] 
+Overfull \hbox (15.03802pt too wide) in paragraph at lines 243--243
+[]  \T1/cmtt/m/n/10 to_int a = (to_int result * to_int b + mod (to_int a) (to_int b))))[] 
  []
 
 [6]
+Overfull \hbox (4.84607pt too wide) in paragraph at lines 266--274
+\T1/cmtt/m/n/10 coordination20$\T1/cmr/m/n/10 . The gen-er-ated ver-i-fi-ca-tion con-di-tions can be dis-charged through
+ []
+
+
 Overfull \hbox (9.36829pt too wide) has occurred while \output is active
                                    [] []
  []
 
-[7] (/Users/selinazhang/Desktop/COORDINATION2020/paper6.bbl
-Underfull \hbox (badness 10000) in paragraph at lines 7--9
-[]\T1/cmr/m/n/9 A Ruby im-ple-men-ta-tion of Ethereum: $\T1/cmtt/m/n/9 https : / / github . com / cryptape /
- []
-
-
-Underfull \hbox (badness 1077) in paragraph at lines 63--65
+[7] (/Users/selinazhang/Documents/GitHub/EVM-Why3/COORDINATION2020/paper6.bbl [8]
+Underfull \hbox (badness 1077) in paragraph at lines 55--57
 []\T1/cmr/m/n/9 Solidity Doc-u-men-ta-tion: $\T1/cmtt/m/n/9 https : / / solidity . readthedocs . io / en / v0 . 5 . 6/$\T1/cmr/m/n/9 , last
  []
 
-[8])
+)
 Overfull \hbox (9.36829pt too wide) has occurred while \output is active
                                    [] []
  []
 
-[9] (/Users/selinazhang/Desktop/COORDINATION2020/paper6.aux) ) 
+[9] (/Users/selinazhang/Documents/GitHub/EVM-Why3/COORDINATION2020/paper6.aux) ) 
 Here is how much of TeX's memory you used:
- 19255 strings out of 492649
- 364397 string characters out of 6129622
- 418649 words of memory out of 5000000
- 22674 multiletter control sequences out of 15000+600000
+ 19253 strings out of 492649
+ 364651 string characters out of 6129622
+ 419639 words of memory out of 5000000
+ 22672 multiletter control sequences out of 15000+600000
  18627 words of font info for 61 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 55i,7n,67p,1131b,422s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 55i,7n,67p,1149b,424s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2018/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}{/usr/local/texlive/2018/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfbx0900.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfbx1000.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfbx1200.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfbx1440.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfrm0900.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfti1000.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sftt0900.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb>
-Output written on /Users/selinazhang/Desktop/COORDINATION2020/paper6.pdf (9 pages, 546839 bytes).
+Output written on /Users/selinazhang/Documents/GitHub/EVM-Why3/COORDINATION2020/paper6.pdf (9 pages, 548344 bytes).
 PDF statistics:
  159 PDF objects out of 1000 (max. 8388607)
  108 compressed objects within 2 object streams

@@ -202,11 +202,6 @@ In this section, we present some examples of property verification towards smart
 test suites. 
 Specifically, we present the specification and verification of \emph{SafeMath} library and \emph{SimpleAuction} contract.
 For the tests, we perform the testing of arithematic operations against the Ethereum test suite.
-
-Generally, the central design choice of the framework is to leverage the infrastructure of 
-Why3, the deductive verification platform where a set of external theorem provers, both automated and interactive, 
-can be relied on to discharge verification conditions. At the same time, 
-OCaml programs can be directly extracted from WhyML programs through the extraction mechanism for further tests.
 }
 {\xy
 \paragraph{Overflow/Underflow property verification.}
@@ -214,7 +209,7 @@ We first take the example of \emph{SafeMath} from Solidity
 library. Overflow/Underflow problems often occur when we deal with number operations. For EVM, the unsigned interger type we 
 perform arithematic operations on range from 0 to $2^{256}$, which is specified as \texttt{uint256} in the WhyML specification.
 The properties we verify are to guarantee that overflow and underflow problems would not occur in the number operations.
-Besides, the correctness of the operation results are also specified in the postconditions and further verified, for example,
+Besides, the correctness of the operation results is also specified in the postconditions and further verified, for example,
 the last postcondition in the function \texttt{div\_safe}. 
 
 As can be seen from the following definition of \texttt{div\_safe},
@@ -245,7 +240,7 @@ forall a:uint256, b:uint256.
   (forall result:uint256. result = div a b -> to_int result >= 0 &&
   (to_int a = 0 -> to_int result = 0) &&
   (not to_int a = 0 ->
-  to_int a = ((to_int result * to_int b) + mod (to_int a) (to_int b))))
+  to_int a = (to_int result * to_int b + mod (to_int a) (to_int b))))
 \end{verbatim}
 To prove the goals, we first apply the \texttt{split VC} transformation and 
 then call theorem provers \emph{alt-ergo} and \emph{cvc4} 
@@ -253,30 +248,93 @@ to prove the subgoals automatically. The proof session state will be
 stored in an XML file, which includes the proved WhyML file, the applied
 transformations, the used provers and the proof results.
 Complete proving goals derived from the functions and 
-proof sessions can be found on this website.
+proof sessions can be found at \url{https://github.com/Xiyue-Selina/coordination20}.
 }
 
 {\xy
-\paragraph{Simple Auction contract verification}
+\paragraph{Open Auction contract verification.}
+The open auction contract is mainly comprised of three functions:
+(1)~Everyone can send their bids through the \texttt{bid} function when the bidding period is not finished.
+When the bid sent by one bidder exceed the current recorded highest bid, the auction state including the highestBidder and highestBid would be updated. Then the withdrawal amount of the previous
+highest bidder should be increased by the previous highest bid.
+(2)~When one bid is beat by another higher raised bid, the previous bid should be returned back to the
+corresponding bidder. Bidders can call \texttt{withdraw} function to get the money/Ether back.
+(3)~The auction is ended by function \texttt{auctionEnd}. If current time is over the auctionEndTime,
+then the auction \texttt{end\_state} should be set to True. As the bidding ended, the beneficiary would 
+receive the final highest Bid.
+
+In the WhyML specification, \texttt{auction\_status} records the current state of the auction including the current 
+highest bidder, the highest bid and the auction ended state. \texttt{auction\_constant} records the beneficiary and the
+auctionEndTime and \texttt{auction\_ended} records the final bidder, bid and the beneficiary claimed money/Ether amount.
+The properties to be verified are to guarantee the correctness of the functionality. For example,
+in the \texttt{auctionEnd} definition, the postcondition specifies the constraints of 
+auction ended state and beneficiary claimed amount that the returned result should satisfy.
+Complete specification of the three functions can be found at \url{https://github.com/Xiyue-Selina/coordination20}. 
+The generated verification conditions can be discharged through \emph{alt-ergo} and \emph{cvc4} automatically.
+
+\begin{verbatim}
+let auctionEnd (current_time: uint) (auc_st: auction_status) 
+(auc_const: auction_constant) (auc_end: auction_ended): 
+(auction_status, auction_ended) 
+... ensures {let (_auc_st, _auc_end) = result in 
+_auc_st.end_state = True 
+&& _auc_end.finalBidder = auc_st.highestBidder 
+&& _auc_end.finalBid = auc_st.highestBid
+&& _auc_end.bene_amount.benefici = auc_const.beneficiary 
+&& _auc_end.bene_amount.benefit_amount = _auc_end.finalBid} = ...
+\end{verbatim}
+
 
 }
 
 
 \section{Related Work}\label{Sec: Related}
-{\xy About comparison with KEVM framework with the support
-of ...logic, Hoare logic serves as a good framework for
-verification condition specification avoiding the complex definitions
-of the operational semantics.}
 
-Research interest of blockchain technology has exploded since the inception of Bitcoin. As the popularity of the second generation of blockchain, Ethereum, grows, a series of security vulnerabilities have also appeared. Since EVM and smart contracts deal directly with the transactions of valuable cryptocurrency units among multiple parties, the security of smart contracts and EVM implementations is of paramount importance. To address the security challenges, researchers resorted to the techniques of formal methods and program analysis. 
+Research interest of blockchain technology has exploded since the inception of Bitcoin. As the popularity of the second generation of blockchain, 
+Ethereum, grows, a series of security vulnerabilities have also appeared. 
+Since EVM and smart contracts deal directly with the transactions of valuable cryptocurrency units among multiple parties, 
+the security of smart contracts and EVM implementations is of paramount importance. To address the security challenges, 
+researchers resorted to the techniques of formal methods and program analysis. 
 
 %\begin{itemize}
 %    \item \textbf{Formalization Foundation of EVM} 
-An executable formal semantics of EVM has been created in the K framework by Everett et al.~\cite{hildenbrandt2017kevm}. Hirai~\cite{hirai2017defining} proposed an EVM implementation in Lem, a language that can be compiled for a few interactive theorem provers. Further, safety properties of smart contracts can be proved in proof assistants like Isabelle/HOL. The \texttt{hevm} project~\cite{hevm} is implemented in Haskell for unit testing and debugging smart contracts, though the EVM implementation is not completed yet. Besides the above formalizations of EVM, there are also implementations of EVM in other languages such as %Javascript~\cite{vmjs}, 
-Go~\cite{vmgo} and Ruby~\cite{cryptape}.
+{\xy\noindent\textbf{Specification and Verification.}~An executable formal semantics of EVM has been 
+created in the K framework by Everett et al.~\cite{hildenbrandt2017kevm}. 
+Compared with KEVM with the support
+of matching logic for verification, we use Hoare logic, which serves as a good framework for
+verification condition specification, to avoid the complex definitions
+of the operational semantics. 
+A framework to analyze and verify both the runtime safety and the functional correctness of 
+Solidity smart contracts in F*
+% , a functional programming language aimed at program verification,
+was presented in \cite{bhargavan2016formal}.
+Hirai~\cite{hirai2017defining} proposed an EVM implementation in Lem, a language that can be compiled for 
+a few interactive theorem provers. Then, safety properties of smart contracts can be proved in proof assistants like Isabelle/HOL.
+While in our work, we use WhyML for specification and programming, which supports both logical theories 
+and programming data structures. Moreover, both automated and interactive external theorem provers 
+can be relied on to discharge verification conditions. 
+% Generally, the central design choice of the framework is to leverage the infrastructure of 
+% Why3, the deductive verification platform where a set of external theorem provers, both automated and interactive, 
+% can be relied on to discharge verification conditions. At the same time, 
+% OCaml programs can be directly extracted from WhyML programs through the extraction mechanism for further tests.
+% Besides the above formalizations of EVM, 
+% there are also implementations of EVM in other languages such as %Javascript~\cite{vmjs}, 
+% Go~\cite{vmgo} and Ruby~\cite{cryptape}.
 %    \item \textbf{Verification of Smart Contracts} 
 
-Sergey et al.~\cite{sergey2017concurrent} provided a new perspective between smart contracts and concurrent objects, based on which existing tools and insights for understanding, debugging and verifying concurrent objects can be used on smart contract behaviors. In \cite{luu2016making}, several new security problems were pointed out and a way to enhance the operational semantics of Ethereum was proposed to make smart contracts less vulnerable. Due to the difficulty of correcting the semantics of Ethereum, Luu et al.~\cite{luu2016making} also implemented a symbolic execution tool \texttt{OYENTE} to find security bugs. A framework to analyze and verify both the runtime safety and the functional correctness of Solidity smart contracts in F* was presented in \cite{bhargavan2016formal}.
+\noindent\textbf{Testing and Debugging.}~The \texttt{hevm} project~\cite{hevm} is implemented in Haskell for unit testing and debugging smart contracts.
+% though the EVM implementation is not completed yet. 
+Sergey et al.~\cite{sergey2017concurrent} provided a new perspective between smart contracts and concurrent objects,
+ based on which existing tools and insights for understanding, 
+ debugging and verifying concurrent objects can be used on smart contract behaviors. 
+ In \cite{luu2016making}, several new security problems were pointed out and a way to enhance the operational semantics of 
+ Ethereum was proposed to make smart contracts less vulnerable. 
+ Due to the difficulty of correcting the semantics of Ethereum, Luu et al.
+ ~\cite{luu2016making} also implemented a symbolic execution tool \texttt{OYENTE} to find security bugs.
+While in our work, executable OCaml programs can be directly extracted from WhyML programs for further tests 
+with the support of extraction mechanism.}
+%  of the deductive verification platform.
+ 
 %\end{itemize} 
 
 \section{Conclusion}\label{Sec: Conclusion}
