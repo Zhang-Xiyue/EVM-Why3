@@ -1,0 +1,210 @@
+theory UInt160                                                                                                                                          
+  (* use why3.BuiltIn.BuiltIn *)                                                                                                                        
+                                                                                                                                                        
+  (* use why3.Bool.Bool *)                                                                                                                              
+                                                                                                                                                        
+  (* use why3.Unit.Unit *)                                                                                                                              
+                                                                                                                                                        
+  (* use mach.int.Unsigned *)                                                                                                                           
+                                                                                                                                                        
+  type uint160                                                                                                                                          
+                                                                                                                                                        
+  constant max_uint160 : int = 0xffffffffffffffffffffffffffffffffffffffff                                                                               
+                                                                                                                                                        
+  constant min_unsigned : int = 0                                                                                                                       
+                                                                                                                                                        
+  function to_int uint160 : int                                                                                                                         
+                                                                                                                                                        
+  (* meta coercion function to_int *)                                                                                                                   
+                                                                                                                                                        
+  (* meta model_projection function to_int *)                                                                                                           
+                                                                                                                                                        
+  predicate in_bounds (n:int) = min_unsigned <= n /\ n <= max_uint160                                                                                   
+                                                                                                                                                        
+  lemma to_int_in_bounds : forall n:uint160. in_bounds n                                                                                                
+                                                                                                                                                        
+  lemma extensionality :                                                                                                                                
+    forall x:uint160, y:uint160. to_int x = to_int y -> x = y                                                                                           
+                                                                                                                                                        
+  (* clone mach.int.Bounded_int with type t = uint160,                                                                                                  
+    predicate in_bounds1 = in_bounds, function to_int1 = to_int,                                                                                        
+    constant max = max_uint160, constant min = min_unsigned,                                                                                            
+    prop extensionality1 = extensionality,                                                                                                              
+    prop to_int_in_bounds1 = to_int_in_bounds,  *)                                                                                                      
+                                                                                                                                                        
+  constant zero_unsigned : uint160                                                                                                                      
+                                                                                                                                                        
+  lemma zero_unsigned_is_zero : to_int zero_unsigned = 0                                                                                                
+                                                                                                                                                        
+  constant radix : int    
+    lemma radix_def : radix = (max_uint160 + 1)
+   
+  (* clone mach.int.Unsigned with type t1 = uint160, constant radix1 = radix,
+    constant zero_unsigned1 = zero_unsigned,
+    predicate in_bounds2 = in_bounds, function to_int2 = to_int,
+    constant max1 = max_uint160, constant min_unsigned1 = min_unsigned,
+    prop radix_def1 = radix_def,
+    prop zero_unsigned_is_zero1 = zero_unsigned_is_zero,
+    prop extensionality2 = extensionality,
+    prop to_int_in_bounds2 = to_int_in_bounds,  *)
+end
+
+theory UInt
+  (* use why3.BuiltIn.BuiltIn *)
+   
+  (* use why3.Bool.Bool *)
+   
+  (* use why3.Unit.Unit *)
+   
+  (* use mach.int.Bounded_int *)
+   
+  type uint
+   
+  constant min_uint : int = 0
+   
+  constant max2 : int
+   
+  function to_int3 uint : int
+   
+  (* meta coercion function to_int3 *) 
+   
+  (* meta model_projection function to_int3 *)
+   
+  predicate in_bounds3 (n:int) = min_uint <= n /\ n <= max2
+   
+  lemma to_int_in_bounds3 : forall n:uint. in_bounds3 n
+   
+  lemma extensionality3 :
+    forall x:uint, y:uint. to_int3 x = to_int3 y -> x = y
+   
+  (* clone mach.int.Bounded_int with type t = uint,
+    predicate in_bounds1 = in_bounds3, function to_int1 = to_int3,
+    constant max = max2, constant min = min_uint,
+    prop extensionality1 = extensionality3,
+    prop to_int_in_bounds1 = to_int_in_bounds3,  *)
+end
+
+theory SimpleAuction
+  (* use why3.BuiltIn.BuiltIn *)
+   
+  (* use why3.Bool.Bool *)
+   
+  (* use why3.Unit.Unit *)
+   
+  (* use int.Int *)
+   
+  (* use bool.Bool1 *)
+   
+  (* use ref.Ref *)
+   
+  (* use map.Map *)
+   
+  (* use int.ComputerDivision *)
+   
+  (* use UInt160 *)
+   
+  (* use UInt *)
+   
+  type address = uint160
+   
+  type auction_status =
+    | Mk auction_status (highestBid:uint) (highestBidder:uint160) (end_state:
+        bool)
+   
+  type pending_return_status =
+    | Mk pending_return_status (return_user:uint160) (return_amount:uint)
+   
+  type auction_constant =
+    | Mk auction_constant (beneficiary:uint160) (auctionEndTime:uint)
+   
+  type beneficiary_amount =
+    | Mk beneficiary_amount (benefici:uint160) (benefit_amount:uint)
+
+  type auction_ended =
+    | Mk auction_ended (finalBidder:uint160) (finalBid:uint) (bene_amount:
+        beneficiary_amount)
+   
+  goal VC update_highest_bidder_bid : true
+   
+  goal VC update_end_state : true
+   
+  goal VC update_return_amount : true
+   
+  goal VC update_beneficiary_value : true
+   
+  goal VC conclude_auction : true
+   
+  (* use why3.Tuple2.Tuple2 *)
+   
+  goal VC bid :
+    forall bid_sender:uint160, bid_value:uint, auc_st:auction_status,
+     pend_st:pending_return_status.
+     bid_value > highestBid auc_st /\
+     end_state auc_st = False /\
+     in_bounds3 (return_amount pend_st + highestBid auc_st) ->
+     (let ori_amount = return_amount pend_st in
+      let o = highestBid auc_st in
+      in_bounds3 (ori_amount + o) /\
+      (forall updated_amount:uint.
+        updated_amount = (ori_amount + o) ->
+        in_bounds3 0 /\
+        (forall o1:uint.
+          o1 = 0 ->
+          (let o2 = highestBid auc_st in
+           forall o3:bool.
+            (to_int3 o2 = to_int3 o1 -> o3 = True) /\ (o3 = True -> o2 = o1) ->
+            (forall _pend_st:pending_return_status, _auc_st:auction_status.
+              (if not o3 = True
+               then _pend_st
+                    = Mk pending_return_status (highestBidder auc_st)
+                      updated_amount /\
+                    _auc_st
+                    = Mk auction_status bid_value bid_sender
+                      (end_state auc_st)
+               else _pend_st = pend_st /\
+                    _auc_st
+                    = Mk auction_status bid_value bid_sender
+                      (end_state auc_st)) ->
+              not highestBid auc_st = 0 ->
+              return_user _pend_st = highestBidder auc_st &&
+              return_amount _pend_st
+              = (return_amount pend_st + highestBid auc_st) &&
+              highestBidder _auc_st = bid_sender &&
+              highestBid _auc_st = bid_value &&
+              highestBid _auc_st > highestBid auc_st)))))
+   
+  goal VC withdraw :
+    forall withdraw_sender:uint160, withdraw_request:uint160 -> uint,
+     pending_st:pending_return_status. 
+     withdraw_sender = return_user pending_st /\ return_amount pending_st > 0 ->
+     in_bounds3 0 /\
+     (forall o:uint.
+       o = 0 ->
+       (forall o1:bool.
+         (if to_int3 (return_amount pending_st) > to_int3 o
+          then let o2 = return_amount pending_st in
+               let o3 = withdraw_request @ withdraw_sender in
+               (to_int3 o3 = to_int3 o2 -> o1 = True) /\
+               (o1 = True -> o3 = o2)
+          else o1 = False) ->
+         (o1 = True -> in_bounds3 0) /\
+         (forall _withdraw:bool, _pend_st:pending_return_status.
+           (if o1 = True
+            then exists o2:uint.
+                  o2 = 0 /\
+                  _withdraw = True /\
+                  _pend_st = Mk pending_return_status withdraw_sender o2
+            else _withdraw = False /\ _pend_st = pending_st) ->
+           ((withdraw_request @ withdraw_sender) = return_amount pending_st ->
+            _withdraw = True && return_amount _pend_st = 0) &&
+           (not (withdraw_request @ withdraw_sender)
+                = return_amount pending_st ->
+            _withdraw = False &&
+            return_amount _pend_st = return_amount pending_st))))
+
+  goal VC auctionEnd :
+    forall current_time:uint, auc_st:auction_status, auc_const:
+     auction_constant.
+     current_time >= auctionEndTime auc_const /\ end_state auc_st = False -> 
+     true /\ true && true && true && true && true
+end

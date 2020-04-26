@@ -1,0 +1,121 @@
+theory UInt256                                                                                                                                 
+  (* use why3.BuiltIn.BuiltIn *)                                                                                                                        
+                                                                                                                                                        
+  (* use why3.Bool.Bool *)                                                                                                                              
+                                                                                                                                                        
+  (* use why3.Unit.Unit *)                                                                                                                              
+                                                                                                                                                        
+  (* use mach.int.Unsigned *)                                                                                                                           
+                                                                                                                                                        
+  type uint256                                                                                                                                          
+                                                                                                                                                        
+  constant max_uint256 : int =                                                                                                                          
+    0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff                                                                                  
+                                                                                                                                                        
+  constant min_unsigned : int = 0                                                                                                                       
+                                                                                                                                                        
+  function to_int uint256 : int                                                                                                                         
+                                                                                                                                                        
+  (* meta coercion function to_int *)                                                                                                                   
+                                                                                                                                                        
+  (* meta model_projection function to_int *)                                                                                                           
+                                                                                                                                                        
+  predicate in_bounds (n:int) = min_unsigned <= n /\ n <= max_uint256                                                                                   
+                                                                                                                                                        
+  lemma to_int_in_bounds : forall n:uint256. in_bounds n                                                                                                
+                                                                                                                                                        
+  lemma extensionality :                                                                                                                                
+    forall x:uint256, y:uint256. to_int x = to_int y -> x = y                                                                                           
+                                                                                                                                                        
+  (* clone mach.int.Bounded_int with type t = uint256,                                                                                                  
+    predicate in_bounds1 = in_bounds, function to_int1 = to_int,                                                                                        
+    constant max = max_uint256, constant min = min_unsigned,                                                                                            
+    prop extensionality1 = extensionality,                                                                                                              
+    prop to_int_in_bounds1 = to_int_in_bounds,  *)                                                                                                      
+   
+  constant zero_unsigned : uint256
+   
+  lemma zero_unsigned_is_zero : to_int zero_unsigned = 0
+   
+  constant radix : int
+   
+  lemma radix_def : radix = (max_uint256 + 1)
+
+ (* clone mach.int.Unsigned with type t1 = uint256, constant radix1 = radix,                                                                  
+    constant zero_unsigned1 = zero_unsigned,
+    predicate in_bounds2 = in_bounds, function to_int2 = to_int,
+    constant max1 = max_uint256, constant min_unsigned1 = min_unsigned,
+    prop radix_def1 = radix_def,
+    prop zero_unsigned_is_zero1 = zero_unsigned_is_zero,
+    prop extensionality2 = extensionality,
+    prop to_int_in_bounds2 = to_int_in_bounds,  *)
+end
+
+theory SafeMath
+  (* use why3.BuiltIn.BuiltIn *)
+   
+  (* use why3.Bool.Bool *)
+   
+  (* use why3.Unit.Unit *)
+   
+  (* use int.Int *)
+   
+  (* use ref.Ref *)
+   
+  (* use map.Map *)
+   
+  (* use array.Array *)
+   
+  (* use int.ComputerDivision *)
+   
+  (* use mach.int.Unsigned *)
+   
+  (* use UInt256 *)
+   
+    goal VC add_safe :
+        forall a:uint256, b:uint256.
+        in_bounds (to_int a + to_int b) ->
+        in_bounds (a + b) /\
+        (forall result:uint256.
+        result = (a + b) ->
+        to_int result >= to_int a && to_int result <= max_uint256)
+    
+    goal VC sub_safe :
+        forall a:uint256, b:uint256.
+        to_int a >= to_int b ->
+        in_bounds (a - b) /\
+        (forall result:uint256.
+        result = (a - b) -> to_int result <= to_int a && to_int result >= 0)
+
+    goal VC mul_safe :
+        forall a:uint256, b:uint256.
+        in_bounds (to_int a * to_int b) ->
+        in_bounds 0 /\
+        (forall o:uint256.
+        o = 0 ->
+        (forall o1:bool.
+            (to_int a = to_int o -> o1 = True) /\ (o1 = True -> a = o) ->
+            (if o1 = True then in_bounds 0 else in_bounds (a * b)) /\
+            (forall result:uint256.
+            (if o1 = True then result = 0 else result = (a * b)) ->
+            (to_int a = 0 ->
+                to_int result = 0 || to_int b = 0 -> to_int result = 0) &&
+            to_int result <= max_uint256)))
+
+    goal VC div_safe :
+        forall a:uint256, b:uint256.
+        to_int b > 0 ->
+        (not b = 0 && in_bounds (div a b)) /\
+        (forall result:uint256.
+        result = div a b ->
+        to_int result >= 0 &&
+        (to_int a = 0 -> to_int result = 0) &&
+        (not to_int a = 0 ->
+            to_int a = ((to_int result * to_int b) + mod (to_int a) (to_int b))))
+
+    goal VC mod_safe :
+        forall a:uint256, b:uint256.
+        not to_int b = 0 ->
+        (not b = 0 && in_bounds (mod a b)) /\
+        (forall result:uint256. result = mod a b -> to_int result >= 0)
+    end
