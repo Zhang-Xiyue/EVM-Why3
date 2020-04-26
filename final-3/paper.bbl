@@ -14,7 +14,10 @@ Bhargavan, K., Delignat{-}Lavaud, A., Fournet, C., Gollamudi, A., Gonthier, G.,
   In: Proceedings of PLAS@CCS 2016. pp. 91--96. {ACM} (2016)
 
 \bibitem{Ethereum}
-Ethereum: \url{https://github.com/ethereum}, last ccessed April 2, 2019
+Ethereum: \url{https://github.com/ethereum}, last accessed April 2, 2019
+
+\bibitem{Examples}
+Examples: \url{https://github.com/Xiyue-Selina/coordination20}
 
 \bibitem{filliatre2013why3}
 Filli{\^a}tre, J.C., Paskevich, A.: Why3-where programs meet provers. In:
@@ -53,7 +56,7 @@ Sergey, I., Hobor, A.: A concurrent perspective on smart contracts. In:
 
 \bibitem{solidity}
 {Solidity Documentation}: \url{https://solidity.readthedocs.io/en/v0.5.6/},
-  last ccessed April 2, 2019
+  last accessed April 2, 2019
 
 \bibitem{hevm}
 {The Hevm Project}:
