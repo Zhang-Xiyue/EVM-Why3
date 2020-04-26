@@ -1,0 +1,115 @@
+module UInt160
+	use mach.int.Unsigned
+	type uint160
+	constant max_uint160: int = 0xffffffffffffffffffffffffffffffffffffffff
+	clone export mach.int.Unsigned with
+		type t = uint160,
+		constant max = max_uint160
+end
+
+module UInt
+    use mach.int.Bounded_int
+    type uint
+    constant min_uint : int = 0
+    clone export mach.int.Bounded_int with
+        type t = uint,
+        constant min = min_uint
+end
+
+module SimpleAuction
+use int.Int
+use bool.Bool
+use ref.Ref
+use map.Map
+use int.ComputerDivision
+use UInt160
+use UInt
+type address = uint160
+
+type auction_status = {
+    highestBid: uint;
+    highestBidder: address;
+    end_state: bool
+}
+type pending_return_status = {
+    return_user: address;
+    return_amount: uint;
+}
+type auction_constant = {
+    beneficiary : address;
+    auctionEndTime : uint
+}
+type beneficiary_amount = {
+    benefici: address; 
+    benefit_amount: uint
+    }
+type auction_ended = {
+    finalBidder: address;
+    finalBid: uint;
+    bene_amount: beneficiary_amount
+}
+
+let update_highest_bidder_bid (bidder: address) (bid: uint) (auc_st: auction_status): auction_status
+    =  {auc_st with highestBid = bid; highestBidder = bidder}
+let update_end_state (end_st: bool) (auc_st: auction_status): auction_status
+    = {auc_st with end_state = end_st}
+let update_return_amount (user: address) (amount: uint) (pending_st: pending_return_status): pending_return_status
+    = {pending_st with return_user = user; return_amount = amount}
+let update_beneficiary_value (auc_const: auction_constant) (value: uint) (_bene_amount: beneficiary_amount): 
+    beneficiary_amount
+    = {_bene_amount with benefici = auc_const.beneficiary; benefit_amount = value}
+let conclude_auction (auc_st: auction_status) (auc_end: auction_ended) (auc_const: auction_constant): auction_ended
+    requires {auc_st.end_state = True}
+    = {auc_end with finalBidder = auc_st.highestBidder; finalBid = auc_st.highestBid; 
+    bene_amount = update_beneficiary_value auc_const auc_st.highestBid auc_end.bene_amount
+    }
+
+let bid (bid_sender: address) (bid_value: uint) (auc_st: auction_status) 
+    (pend_st: pending_return_status) : (pending_return_status, auction_status)
+    requires {bid_value > auc_st.highestBid}
+    requires {auc_st.end_state = False}
+    requires {in_bounds (pend_st.return_amount + auc_st.highestBid)}
+    ensures {let (_pend_st, _auc_st) = result in auc_st.highestBid <> 0 -> _pend_st.return_user = auc_st.highestBidder && 
+    _pend_st.return_amount = pend_st.return_amount + auc_st.highestBid &&
+    _auc_st.highestBidder = bid_sender && _auc_st.highestBid = bid_value && _auc_st.highestBid > auc_st.highestBid}
+    = let ori_amount = pend_st.return_amount in
+    let updated_amount = ori_amount + auc_st.highestBid in
+    let _highestBid = ref auc_st.highestBid in
+    if !_highestBid <> UInt.of_int 0 then  update_return_amount auc_st.highestBidder updated_amount pend_st,
+    update_highest_bidder_bid bid_sender bid_value auc_st
+    else pend_st, update_highest_bidder_bid bid_sender bid_value auc_st
+
+let withdraw (withdraw_sender: address) (withdraw_request: map address uint) 
+    (pending_st: pending_return_status): (bool, pending_return_status)
+    requires {withdraw_sender = pending_st.return_user}
+    requires {pending_st.return_amount > 0}
+    ensures {let (_withdraw, _pend_st) = result in
+    withdraw_request withdraw_sender = pending_st.return_amount ->
+    _withdraw = True && _pend_st.return_amount = 0} 
+    ensures {let (_withdraw, _pend_st) = result in
+    withdraw_request withdraw_sender <> pending_st.return_amount ->
+    _withdraw = False && _pend_st.return_amount = pending_st.return_amount} 
+    = 
+    let _amount = ref (pending_st.return_amount) in
+    let _request = ref (withdraw_request withdraw_sender) in
+    if !_amount > UInt.of_int 0 && !_request = !_amount then (True, update_return_amount withdraw_sender (UInt.of_int 0) pending_st)
+    else (False, pending_st)
+
+
+let auctionEnd (current_time: uint) (auc_st: auction_status) (auc_const: auction_constant) (auc_end: auction_ended): 
+    (auction_status, auction_ended) 
+    requires {current_time >= auc_const.auctionEndTime}
+    requires {auc_st.end_state = False}
+    ensures {let (_auc_st, _auc_end) = result in 
+    _auc_st.end_state = True && _auc_end.finalBidder = auc_st.highestBidder && _auc_end.finalBid = auc_st.highestBid
+    && _auc_end.bene_amount.benefici = auc_const.beneficiary && _auc_end.bene_amount.benefit_amount = _auc_end.finalBid}
+    = 
+    let _auc_final = update_end_state True auc_st in 
+    (_auc_final, conclude_auction _auc_final auc_end auc_const)
+end
+
+
+
+
+
+
