@@ -595,7 +595,7 @@ let inst_list_of_program(p: program) (idx: int): byte =
 *)
 
 
-(* Representation of the machine state part i.e. the volatile part *)
+(* Representation of the machine state part *)
 type machine_state = {
   mac_stack : stack ; (* In EVM definition, max length is 1024 *)
   mac_memory : memory;

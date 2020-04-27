@@ -73,17 +73,30 @@ Among dozens of decentralized computing platforms, Ethe\-reum attracts widesprea
 
 \section{Introduction}
 
-Ever since the inception of the Bitcoin blockchain system \cite{nakamoto2008bitcoin}, cryptocurrencies have become a well-known global revolutionary phenomenon. Meanwhile, the decentralized blockchain system with no server or central authority, which emerges as a side product of Bitcoin and provides a continuously growing ledger of transactions being represented as a chained list of blocks distributed and maintained over a peer-to-peer network \cite{ZXDCW18}, shows great potential in carrying out secure online transactions. From then on, there have been a lot of changes and growth on the blockchain technology. %The researchers and developers see plenty of potential and massive possibilities of blockchain applications, especially in financial, governmental services. 
-Ethereum \cite{Ethereum} extends Bitcoin's design, which can process not only transactions but also complex programs and {\em smart contracts}. Smart contracts can automatically run inside a blockchain, 
-making it possible to use blockchain techniques in many other application domains besides cryptocurrencies, and has attracted a lot of attention from government, finance, health, entertainment and industry. This feature makes Ethereum a popular ecosystem for building blockchain-applications, which gains much more interest to innovate the options to utilize blockchain. 
+Ever since the inception of the Bitcoin blockchain system \cite{nakamoto2008bitcoin}, 
+cryptocurrencies have become a well-known global revolutionary phenomenon. 
+Meanwhile, the decentralized blockchain system with no server or central authority, which emerges as a side product of Bitcoin 
+and provides a continuously growing ledger of transactions being represented as a chained list of blocks distributed 
+and maintained over a peer-to-peer network \cite{ZXDCW18}, shows great potential in carrying out secure online transactions. 
+From then on, there have been a lot of changes and growth on the blockchain technology. %The researchers and developers see plenty of potential and massive possibilities of blockchain applications, especially in financial, governmental services. 
+Ethereum \cite{Ethereum} extends Bitcoin's design, which can process not only transactions but also complex programs and {\em smart contracts}. 
+Smart contracts running on the blockchain 
+make it possible to use blockchain techniques in many other application domains besides cryptocurrencies, 
+and have attracted a lot of attention from government, finance, health, entertainment and industry. This feature makes Ethereum a popular ecosystem for building blockchain-applications, which gains much more interest to innovate the options to utilize blockchain. 
 
 %Different languages have been proposed for developing smart contracts. For example, Ethereum provides a Turing-complete programming language named {\em Solidity} to implement smart contracts.
-Smart contracts are often written in a Turing-complete programming language called \textit{Solidity} \cite{solidity} and then compiled into low-level machine instructions (\textit{opcodes}), which can be encoded into bytecode. Ethereum Virtual Machine (EVM) is a quasi-Turing complete machine which implements the execution model of the Ethereum Virtual Machine. Given a sequence of bytecode instructions, which are compiled from smart contracts by an EVM compiler, and the environment data, this execution model specifies how the blockchain transits from one state to another. 
+Smart contracts are often written in a Turing-complete programming language called \textit{Solidity} \cite{solidity} 
+and then compiled into EVM bytecode, which can be mapped into a list of machine instructions (\textit{opcodes}).  
+% low-level machine instructions (\textit{opcodes}), which can be encoded into bytecode. 
+Ethereum Virtual Machine (EVM) is a quasi-Turing complete machine. 
+It provides a runtime environment for smart contracts to be executed. 
+% which implements the execution model of the Ethereum Virtual Machine. 
+Given a sequence of bytecode instructions, which are compiled from smart contracts by an EVM compiler, and the environment data, this execution model specifies how the blockchain transits from one state to another. 
 
 However, EVM and smart contracts are faced with several security vulnerabilities. %In fact, a lot of attacks on smart contracts succeeded in the past years, such as the famous DAO (Decentralized Autonomous Organization) attack in 2016 resulting in the lost of more than 60M USD, and the Parity Wallet Hacks in which vulnerabilities in the wallet was exploited by an attacker to successfully steal over 150,000 ETH (about 30M USD), and leads to more than 250M USD frozen later in 2017. 
 A taxonomy of vulnerabilities and related attacks against Solidity, the EVM, and the blockchain is presented in \cite{atzei2016survey}. 
 %Formal verification techniques such as theorem proving and testing have become essential to guarantee the correctness of systems. The adoption of formal methods can facilitate the production of trustworthy and reliable smart contracts as well. 
-To deal with the security challenges against EVM, we proposed a formal framework of generating verified EVM for production environment in this paper. The contributions of this work are: 
+To deal with the security challenges against EVM, we propose a formal framework of generating verified EVM for production environment in this paper. The contributions of this work are: 
 \begin{itemize}
 \item A formal definition of EVM specified in WhyML, the programming and specification language used in Why3 \cite{filliatre2013why3}. 
 \item An implementation of EVM in OCaml generated through an extraction mechanism based on a series of customized drivers. 
@@ -94,7 +107,7 @@ To deal with the security challenges against EVM, we proposed a formal framework
 
 This paper is organized as follows: %Section \ref{Sec: Pre} presents some background about Why3, Ethereum Virtual Machine (EVM) and smart contracts. 
 We outline the framework for formalizing, property verifying and testing of EVM in Section \ref{Sec: Framework}. %Based on the framework, we perform some experiments in Section \ref{Sec: Experiment} and highlight the verification and testing results for the properties of EVM. 
-Section \ref{Sec: Related} presents some related work. Finally, we summarized this paper %and point out the future research direction 
+Section \ref{Sec: Related} presents some related work. Finally, we summarize this paper %and point out the future research direction 
 in Section \ref{Sec: Conclusion}.
 
 \CUT{
@@ -120,25 +133,61 @@ Smart contracts are essentially programs deployed on the Ethereum blockchain use
 
 \section{The Framework of Generating Verified EVM for Production Environment}\label{Sec: Framework}
 %\subsection{Methodology of EVM Framework}
-In this section, we present the framework of generating verified EVM for production environment in detail. The framework is as shown in Fig. \ref{fig:evm1} and the main idea is to combine verification and testing techniques towards developing secure EVM implementations.
-It also provides the potential to verify smart contracts at the bytecode level.  This framework is mainly comprised of two parts: EVM specification in Why3 and experimental testing based on OCaml Extraction and Rust connection. This approach leverages on formal methods and engineering approaches, allowing us to perform both rigorous verification and efficient testing for EVM implementations and further smart contracts. 
+In this section, we present the framework of generating verified EVM for production environment in detail. 
+The framework is as shown in Fig. \ref{fig:evm1} and the main idea is to combine verification and testing techniques 
+towards developing more secure EVM implementations.
+It also provides a platform to verify the functionality properties of smart contracts.  
+This framework is mainly comprised of two parts: (1)~EVM specification and property verification in Why3; (2)~experimental testing based on OCaml extraction and Rust connection. 
+This approach leverages formal methods and engineering approaches, allowing us to perform 
+both rigorous verification and efficient testing for EVM implementations and smart contracts. 
 
 \subsection{EVM in Why3}
 The first phase of the framework is to define a formal specification of EVM in Why3 and provide a platform for rigorous verification.  
-We develop the EVM specification, following the Ethereum project yellow paper~\cite{wood2014ethereum}. More specifically, the EVM implementation is translated into WhyML, the programming and specification language of Why3. %Towards the verification, 
-Verification conditions can be further generated through Why3 based on the EVM and property specification. The verification goals can be split into a set of subgoals or directly be proved through the supported Satisfiability Modulo Theories (SMT) solvers. In cases when the automatic SMT solvers cannot deal with, users can resort to interactive theorem provers based on the files generated by Why3.
+We develop the EVM specification, following the Ethereum project yellow paper~\cite{wood2014ethereum}. 
+More specifically, the EVM implementation is translated into WhyML, 
+the programming and specification language of Why3. %Towards the verification, 
+Verification conditions can be further generated
+based on the pre- and post-condition specification. 
+Generated verification goals can be solved directly through the supported 
+Satisfiability Modulo Theories (SMT) solvers or go through a sequence of transformations first. 
+% Generated verification goals can be split into a set of subgoals or directly be proved through the supported 
+% Satisfiability Modulo Theories (SMT) solvers. 
+In cases when the automatic SMT solvers cannot deal with, users can resort to interactive theorem provers for the remaining unsolved proof goals.
 
-EVM is essentially a simple stack-based machine. The memory model of EVM is a word-addressed byte array, which is volatile. The storage model of EVM is a non-volatile word-addressed word array. These three components form the infrastructure of EVM. Based on the formalization of the infrastructure, the most important aspect in this framework is to capture the execution result of the EVM instructions. The perspective from which we deal with the execution process of a sequence of opcodes (instructions) is as a state transition process. This process starts with an initial state and leads to a series of changes in the stack, memory etc. The formalization of base infrastructure and the instruction set are specified through \textit{Type Definition} and \textit{Instruction Definition}, respectively. And the \textit{Interpreter Definition} provides the specification of the interpreter and auxiliary functions. 
+EVM is essentially a stack-based machine. The memory model of EVM is a word-addressed byte array and
+the storage model is a word-addressed word array. These three components form the infrastructure of EVM. 
+Based on the formalization of the infrastructure, the most important aspect in this framework is to capture the execution result of the EVM instructions. 
+The perspective from which we deal with the execution process of a sequence of opcodes (instructions) is as a state transition process. 
+This process starts with an initial state and leads to a series of changes in the stack, memory etc. 
+The formalization of base infrastructure and the instruction set are specified through \textit{Type Definition} and \textit{Instruction Definition}, respectively. 
+The main function \textit{Interpreter} provides the specification of transition results for the instructions.
+% interpreter and auxiliary functions. 
 
 \subsubsection{Type Definition}\label{sec:type}
 
-To formalize the infrastructure of EVM, we need to first provide the formalization of commonly-used types in EVM, such as the types of machine words and the addresses in the EVM. Hence, we developed a series of type modules such as \texttt{UInt256} and \texttt{UInt160} to ease the representation of corresponding types in EVM. Type alias supported by Why3 are also used to make the basic formalization more readable and consistent with the original definition. 
+To formalize the infrastructure of EVM, we need to first provide the formalization of commonly-used types in EVM, 
+such as the types of machine words and the addresses in the EVM. 
+Hence, we developed a series of type modules such as \texttt{UInt256} and \texttt{UInt160} to ease the representation of corresponding types in EVM. 
+Type alias supported by Why3 are also used to make the basic formalization more readable and consistent with the original definition. 
 
-To this end, the components of the base infrastructure can be easily specified. Stack is defined as a list of elements whose type is \texttt{uint256}, aliased by \texttt{machine word}. Memory is defined as a function that maps \texttt{machine word} to an option type \texttt{option memory\_content}. Since the memory content could be accessed through 256-bit store and 8-bit store instructions, \texttt{memory\_content} is defined as an enumeration type including \texttt{Item8} and \texttt{Item256}. Similarly, storage is defined as a function that maps \texttt{machine word} to \texttt{machine word}. To reflect the implicit change of the machine state, we defined more miscellaneous types. For example, we use \texttt{vmstatus}, \texttt{error} and \texttt{return\_type} to capture the virtual machine status, the operation error, and the view of the returned result. Furthermore, the record type \texttt{machine\_state} is defined to represent the overall machine state which consists of stack, memory, program counter, vmstatus, the instruction list, etc.
+To this end, the components of the base infrastructure can be easily specified. 
+Stack is defined as a list of elements whose type is \texttt{uint256}, aliased by \texttt{machine word}. 
+Memory is defined as a function that maps \texttt{machine word} to an option type \texttt{option memory\_content}. 
+Since the memory content could be accessed through 256-bit store and 8-bit store instructions, 
+\texttt{memory\_content} is defined as an enumeration type including \texttt{Item8} and \texttt{Item256}. 
+Similarly, storage is defined as a function that maps \texttt{machine word} to \texttt{machine word}. 
+To reflect the implicit change of the machine state, we defined more miscellaneous types. 
+For example, we use \texttt{vmstatus}, \texttt{error} and \texttt{return\_type} to capture the virtual machine status, the operation error, 
+and the view of the returned result. 
+Furthermore, the record type \texttt{machine\_state} is defined to represent the overall machine state 
+which consists of stack, memory, storage, program counter, vmstatus, the instruction list, etc.
 
 \subsubsection{Instruction Definition}\label{sec:instruction}
-The infrastructure has been built to specify the state of the virtual machine. %Here we present the formal specification of the action set, i.e., the instruction set. 
-Inspired by the instruction formalization in Lem~\cite{hirai2017defining}, the instruction set is defined in multiple groups, such as {\em arithmetic operations} and {\em stack operations}, then these groups are integrated into a summarized type definition \texttt{instruction}. %The definition of \texttt{instruction} is presented as follows, where 
+
+The infrastructure has been built above to specify the state of the virtual machine. 
+%Here we present the formal specification of the action set, i.e., the instruction set. 
+Inspired by the instruction formalization in Lem~\cite{hirai2017defining}, 
+the instruction set is defined in multiple groups, such as {\em arithmetic operations} and {\em stack operations}, then these groups are integrated into a summarized type definition \texttt{instruction}. %The definition of \texttt{instruction} is presented as follows, where 
 Different subsets of instructions are wrapped up to form the complete specification in the definition of \texttt{instruction}.
 \CUT{
 \begin{verbatim}
@@ -159,8 +208,17 @@ type instruction =
 \end{verbatim}
 }
 
-The organization of the instruction category is a bit different from the yellow paper~\cite{wood2014ethereum}. The comparison operations are grouped in the arithmetic operation set \texttt{Arith}; and the comparison operations for signed arithmetic are included in the signed arithmetic operation set \texttt{Sarith}. The bitwise operations and operation \texttt{BYTE} are categorized into the bit-related instruction group \texttt{Bits}. The information related instructions including environmental and block information ones are defined in type \texttt{info\_inst}, except \texttt{CALL} and \texttt{CODE} instructions, such as \texttt{CALLDATACOPY}, \texttt{CODECOPY} and \texttt{CALLDATALOAD}. These instructions are more closely related to memory and stack status. Therefore, extra instructions but closely-related ones are added to the original memory and stack instruction groups. % presented in the yellow paper. 
-In case when some illegal command occurs, the instruction \texttt{Invalid} is included in the \texttt{instruction} definition. The \texttt{STOP} operation and the system operations from the yellow paper are defined in the \texttt{System} instruction set. The specification of the remaining instruction groups are basically the same as the corresponding instruction subsets in \cite{wood2014ethereum}. 
+The organization of the instruction category is a bit different from the yellow paper~\cite{wood2014ethereum}. 
+The comparison operations are grouped in the arithmetic operation set \texttt{Arith}; 
+and the comparison operations for signed arithmetic are included in the signed arithmetic operation set \texttt{Sarith}. 
+% The bitwise operations and operation \texttt{BYTE} are categorized into the bit-related instruction group \texttt{Bits}. 
+The information related instructions including environmental and block information are defined in type \texttt{info\_inst}, 
+except \texttt{CALL} and \texttt{CODE} instructions, such as \texttt{CALLDATACOPY}, \texttt{CODECOPY} and \texttt{CALLDATALOAD}. 
+These instructions are more closely related to memory and stack status. 
+Therefore, they are added to the memory and stack instruction groups. % presented in the yellow paper. 
+In case when some illegal command occurs, the instruction \texttt{Invalid} is included in the \texttt{instruction} definition. 
+% The \texttt{STOP} operation and the system operations from the yellow paper are defined in the \texttt{System} instruction set. 
+The specification of the remaining instruction groups are basically the same as the corresponding instruction subsets in \cite{wood2014ethereum}. 
 
 \subsubsection{Interpreter Definition}\label{sec:interpreter}
 The specification of \texttt{interpreter} formalizes the state transition result of different instructions. For a specific instruction, the interpreter determines the resultant machine status developing from the current status. Some auxiliary functions are defined
