@@ -142,17 +142,19 @@ This approach leverages formal methods and engineering approaches, allowing us t
 both rigorous verification and efficient testing for EVM implementations and smart contracts. 
 
 \subsection{EVM in Why3}
-The first phase of the framework is to define a formal specification of EVM in Why3 and provide a platform for rigorous verification.  
+The first phase of the framework is to define a formal specification of EVM in Why3 
+and provide a platform for rigorous verification.  
 We develop the EVM specification, following the Ethereum project yellow paper~\cite{wood2014ethereum}. 
 More specifically, the EVM implementation is translated into WhyML, 
 the programming and specification language of Why3. %Towards the verification, 
 Verification conditions can be further generated
 based on the pre- and post-condition specification. 
-Generated verification goals can be solved directly through the supported 
-Satisfiability Modulo Theories (SMT) solvers or go through a sequence of transformations first. 
+Generated verification goals are solved directly through the supported 
+solvers or go through a sequence of transformations first. 
 % Generated verification goals can be split into a set of subgoals or directly be proved through the supported 
 % Satisfiability Modulo Theories (SMT) solvers. 
-In cases when the automatic SMT solvers cannot deal with, users can resort to interactive theorem provers for the remaining unsolved proof goals.
+In cases when the automatic SMT solvers cannot deal with, 
+users can resort to interactive theorem provers for the remaining unsolved proof goals.
 
 EVM is essentially a stack-based machine. The memory model of EVM is a word-addressed byte array and
 the storage model is a word-addressed word array. These three components form the infrastructure of EVM. 
@@ -170,14 +172,15 @@ such as the types of machine words and the addresses in the EVM.
 Hence, we developed a series of type modules such as \texttt{UInt256} and \texttt{UInt160} to ease the representation of corresponding types in EVM. 
 Type alias supported by Why3 are also used to make the basic formalization more readable and consistent with the original definition. 
 
-To this end, the components of the base infrastructure can be easily specified. 
+To this end, the components of the base infrastructure can be specified. 
 Stack is defined as a list of elements whose type is \texttt{uint256}, aliased by \texttt{machine word}. 
 Memory is defined as a function that maps \texttt{machine word} to an option type \texttt{option memory\_content}. 
-Since the memory content could be accessed through 256-bit store and 8-bit store instructions, 
-\texttt{memory\_content} is defined as an enumeration type including \texttt{Item8} and \texttt{Item256}. 
+% Since the memory content could be accessed through 256-bit store and 8-bit store instructions, 
+% \texttt{memory\_content} is defined as an enumeration type including \texttt{Item8} and \texttt{Item256}. 
 Similarly, storage is defined as a function that maps \texttt{machine word} to \texttt{machine word}. 
 To reflect the implicit change of the machine state, we defined more miscellaneous types. 
-For example, we use \texttt{vmstatus}, \texttt{error} and \texttt{return\_type} to capture the virtual machine status, the operation error, 
+For example, we use \texttt{vmstatus}, \texttt{error} and \texttt{return\_type} to 
+capture the virtual machine status, the operation error, 
 and the view of the returned result. 
 Furthermore, the record type \texttt{machine\_state} is defined to represent the overall machine state 
 which consists of stack, memory, storage, program counter, vmstatus, the instruction list, etc.
@@ -222,28 +225,29 @@ The specification of the remaining instruction groups are basically the same as 
 
 \subsubsection{Interpreter Definition}\label{sec:interpreter}
 The specification of \texttt{interpreter} formalizes the state transition result of different instructions. 
-For a specific instruction, the interpreter determines the resultant machine status developing from the current status. 
+For a specific instruction, the interpreter determines the result machine state developing from the current state. 
 Some auxiliary functions are defined to make the definition of the interpreter more concise and compact. 
 \begin{verbatim}
 let interpreter (m: machine_state): machine_state =
 let inst = get_inst m in
 match inst with 
   | Some (Arith ADD) -> let (st', a) = (pop_stack (m.mac_stack)) in 
-    let (st'', b) = ( pop_stack st') in ...
+    let (st'', b) = (pop_stack st') in ...
     {m with mac_stack = push_stack st'' (a' + b'); ...}
 \end{verbatim}
 
-For example, in the above code snippet of \texttt{Arith ADD} instrcution, 
-\texttt{get\_inst} is used to obtain the next instruction to be executed. 
+In the above code snippet, \texttt{get\_inst} is used to obtain the next instruction to be executed. 
 It is obtained from the instruction list following the program counter. 
+In the case of \texttt{Arith ADD} instrcution, the numbers to perform the add operation on are popped out of the stack first and the
+result is pushed into the stack after the calculation. As a result, the stack state is updated as a component of the machine state.
 % Pop and push operations are the most commonly-used manipulations for the state transition of stack. 
-Functions \texttt{push\_stack} and \texttt{pop\_stack} are defined to control the pop and push manipulations
+In this process, functions \texttt{push\_stack} and \texttt{pop\_stack} are defined to control the push and pop manipulations
 for the state transition of stack. 
 % For capturing the status transition result of \texttt{Swap} instructions, 
 % recursive functions \texttt{fetch} and \texttt{drop} are defined to support more direct manipulation on lists. 
 % Another function \texttt{swap\_stack} is defined further for state transition of swap instructions.
 With the support of pre-defined auxiliary functions, 
-the definition of the interpreter function is essentially comprised of machine status update with regard to the instructions. 
+the definition of the interpreter function is essentially comprised of machine state update with regard to the instructions. 
 
 \begin{figure*}[t]
   \centering
@@ -254,13 +258,24 @@ the definition of the interpreter function is essentially comprised of machine s
 
 \subsection{Running EVM in Production Environment}
 %We customizedly defined a series of drivers to %extract WhyML programs into OCaml programs. 
-Fig. \ref{fig2} shows the second phase of the framework: deploy the verified EVM, encoded in Why3, in production environments. The deployment is essentially based on a co-compilation framework between OCaml and Rust.
+Fig. \ref{fig2} shows the second phase of the framework: deploy the extracted OCaml implementation from Why3 in production environments. 
+The deployment is essentially based on a co-compilation framework between OCaml and Rust.
 
-OCaml is a functional programming language where the programs can be compiled either to OCaml bytecode or executable binaries. In the latter case, a runtime library is attached to handle various non-functional features like memory management. Through the \texttt{Callback} module, OCaml allows us to register a set of callback functions which can be used as an interface in static or dynamic linking. 
-So we first defined a series of customized drivers to extract WhyML programs into OCaml programs. After the extraction, the OCaml implementation of EVM is then encapsulated and exposed as a static linked library. This library can be further called by the EVM host in Rust.
+OCaml is a functional programming language where the programs can be compiled either to OCaml bytecode or executable binaries. 
+In the latter case, a runtime library is attached to handle various non-functional features like memory management. 
+Through the \texttt{Callback} module, OCaml allows us to register a set of callback functions which can be used as an interface
+in static or dynamic linking. 
+So we first defined a series of customized drivers to extract WhyML programs into OCaml programs. 
+After the extraction, the OCaml implementation of EVM is then encapsulated and exposed as a static linked library. 
+This library can be further called by the EVM host in Rust.
 
-Rust is a multi-paradigm system programming language which is designed to provide better memory safety while maintaining high performance \cite{LBHN16}.
-The framework provides the interaction mechanism between Rust and Why3. By gluing them together, verified models can be directly executed in production environments for further testing. The coupling between Rust and extracted OCaml implementation enables us to perform VM tests to test the basic workings of the verified VM. Information of the overarching environment is obtained through the interface of Rust implementation, and the test can be performed on the execution of the OCaml implementations to check the operations in different transactions.    
+Rust is a multi-paradigm system programming language which is designed to provide better memory safety 
+while maintaining high performance \cite{LBHN16}.
+The framework provides the interaction mechanism between Rust and Why3. 
+By gluing them together, verified models can be directly executed in production environments for further testing. 
+The coupling between Rust and extracted OCaml implementation enables us to perform VM tests to test the basic workings of the verified VM. 
+Information of the overarching environment is obtained through the interface of Rust implementation, 
+and the test can be performed on the execution of the OCaml implementations to check the operations in different transactions.    
 
 \subsection{Examples of Property Verification and Tests}
 
@@ -318,11 +333,11 @@ proof sessions can be found at \cite{Examples}.
 \paragraph{Open Auction contract verification.}
 The open auction contract is mainly comprised of three functions:
 (1)~Everyone can send their bids through the \texttt{bid} function when the bidding period is not finished.
-When the bid sent by one bidder exceed the current recorded highest bid, the auction state including the highestBidder and highestBid would be updated. Then the withdrawal amount of the previous
+When the bid sent by one bidder exceeds the current recorded highest bid, the auction state including the highestBidder and highestBid would be updated. Then the withdrawal amount of the previous
 highest bidder should be increased by the previous highest bid.
-(2)~When one bid is beat by another higher raised bid, the previous bid should be returned back to the
+(2)~When one bid is beaten by another higher raised bid, the previous bid should be returned back to the
 corresponding bidder. Bidders can call the \texttt{withdraw} function to get the money/Ether back.
-(3)~The auction is ended by the \texttt{auctionEnd} function. If current time is over the auctionEndTime,
+(3)~The auction is ended by the \texttt{auctionEnd} function. If current time is already greater than the auctionEndTime,
 then the auction \texttt{end\_state} should be set to True. As the bidding ended, the beneficiary would 
 receive the final highest Bid.
 
@@ -332,7 +347,7 @@ auctionEndTime and \texttt{auction\_ended} records the final bidder, bid and the
 The properties to be verified are to guarantee the correctness of the functionality. For example,
 in the \texttt{auctionEnd} definition, the postcondition specifies the constraints of 
 auction ended state and beneficiary claimed amount that the returned result should satisfy.
-Complete specification of the three functions can be found at \cite{Examples}.
+Complete specification of the functions can be found at \cite{Examples}.
 %\url{https://github.com/Xiyue-Selina/coordination20}. 
 The generated verification conditions can be discharged through \emph{alt-ergo} and \emph{cvc4} automatically.
 
@@ -350,10 +365,13 @@ _auc_st.end_state = True
 
 \section{Related Work}\label{Sec: Related}
 
-Research interest of blockchain technology has exploded since the inception of Bitcoin. As the popularity of the second generation of blockchain, 
-Ethereum, grows, a series of security vulnerabilities have also appeared. 
-Since EVM and smart contracts deal directly with the transactions of valuable cryptocurrency units among multiple parties, 
-the security of smart contracts and EVM implementations is of paramount importance. To address the security challenges, 
+Research interest of blockchain technology has exploded since the inception of Bitcoin. 
+As the popularity of the second generation of blockchain, 
+Ethereum, grows, a series of vulnerabilities have also appeared. 
+Since EVM and smart contracts deal directly with the transactions of valuable cryptocurrency units 
+among multiple parties, 
+the safety of smart contracts and EVM implementations is of paramount importance. 
+To address these challenges, 
 researchers resorted to the techniques of formal methods and program analysis. 
 
 %\begin{itemize}
@@ -364,7 +382,7 @@ Compared with KEVM with the support
 of matching logic for verification, we use Hoare logic, which serves as a good framework for
 verification condition specification, to avoid the complex definitions
 of the operational semantics. 
-A framework to analyze and verify both the runtime safety and the functional correctness of 
+A framework to analyze and verify the safety and the correctness of 
 Solidity smart contracts in F*
 % , a functional programming language aimed at program verification,
 was presented in \cite{bhargavan2016formal}.
@@ -385,20 +403,24 @@ can be relied on to discharge verification conditions.
 \noindent\textbf{Testing and Debugging.}~The \texttt{hevm} project~\cite{hevm} is implemented in Haskell for unit testing and debugging of smart contracts.
 % though the EVM implementation is not completed yet. 
 Sergey et al.~\cite{sergey2017concurrent} provided a new perspective between smart contracts and concurrent objects,
- based on which existing tools and insights for understanding, 
- debugging and verifying concurrent objects can be used on smart contract behaviors. 
- In \cite{luu2016making}, several new security problems were pointed out and a way to enhance the operational semantics of 
- Ethereum was proposed to make smart contracts less vulnerable. 
- Due to the difficulty of correcting the semantics of Ethereum, Luu et al.
- ~\cite{luu2016making} also implemented a symbolic execution tool \texttt{OYENTE} to find security bugs.
+based on which existing tools for understanding and
+debugging concurrent objects can be used on smart contract behaviors. 
+In \cite{luu2016making}, several new security problems were pointed out and a way to enhance the operational semantics of 
+Ethereum was proposed to make smart contracts less vulnerable. 
+Due to the difficulty of correcting the semantics of Ethereum, Luu et al.
+~\cite{luu2016making} also implemented a symbolic execution tool \texttt{OYENTE} to find security bugs.
 While in our work, executable OCaml programs can be directly extracted from WhyML programs for further tests 
-with the support of extraction mechanism.
+with the support of customized drivers and extraction mechanism.
 %  of the deductive verification platform.
  
 %\end{itemize} 
 
 \section{Conclusion}\label{Sec: Conclusion}
-We propose a framework to enable formal specification, verification and testing towards EVM. In this framework, the formalization of EVM is specified in WhyML, the programming and specification language of Why3. Based on the EVM formalization, automatic SMT solvers and interactive theorem provers provided in Why3 can be employed for verification. The OCaml implementation of EVM is extracted from the WhyML specification and then glued with Rust implementation based on the coupling framework. The coupling framework provides the interaction mechanism between OCaml and Rust, which allows us to perform tests on the new implementation without additional interface implementation.
+We propose a framework to enable formal specification, verification and testing towards EVM. 
+In this framework, the formalization of EVM is specified in WhyML, 
+% the programming and specification language of Why3. 
+based on which, automatic SMT solvers and interactive theorem provers can be employed for verification. 
+The OCaml implementation of EVM is extracted from the WhyML specification and then glued with Rust implementation based on the coupling framework. The coupling framework provides the interaction mechanism between OCaml and Rust, which allows us to perform tests on the new implementation without additional interface implementation.
 
 \subsection*{Acknowledgement}
 \noindent This work has been supported by the National Natural Science Foundation of China under grant no. 61772038 and 61532019, and the Guangdong Science and Technology Department (Grant no.2018B010107004). Thanks to members of Cryptape, especially Jan and Zhiwei, for the helpful discussions during the development of this framework.
