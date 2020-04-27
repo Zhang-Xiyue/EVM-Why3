@@ -1,7 +1,6 @@
 module EVM
 
-(* Focus on machine state: Program Counter, Gas Available, Stack Contents, Memory Contents which are volatile Machine state;
-with the account storage as persistent world state *)
+(* Focus on machine state transition: Program Counter, Stack Contents, Memory Contents, Storage, etc. *)
 
 (* the library support *)
 use array.Array
@@ -20,31 +19,30 @@ use uint4.UInt4
 (* Use clear alias for commonly-used type *)
 
 
-(* 32-bit and 64-bit signed and unsigned integers ([Int32], [UInt32], [Int64], and [UInt64]) as well as 31-bit and 
-63-bit signed integers ([Int31] and [Int63] have been instantiated *)
+(* 8-bit and 160-bit unsigned integers ([UInt8] and [UInt160]) *)
 (* They can be transformed using to_int and of_int, which can be further encapsulated for other transformation between type *) 
+(* Explicit type transformation, such as machword to address, machword to byte in each newly-built library,
+will be encapsulated as a function through to_int and of_int *)
 type byte = uint8
 type address = uint160
 type machword = uint256
 
-(* Explicit type transformation, such as machword to address, machword to byte in each newly-built library,
-can be encapsulated as a function through to_int and of_int*)
-
 (* memory: word addressed byte array *)
-(* stack: one way of model is modeled as list uint256, with a maximum size of 1024 *)
-(* storage(independent): word addressed word array, maintained as part of the system state *)
+(* stack: list uint256 *)
+(* storage: word addressed word array, maintained as part of the system state *)
 
 (* Enumeration type*)
+(* Both machword and byte can be saved to memory *)
 type memory_content = 
    | Item8 uint256
    | Item256 uint256
 type memory = machword -> option memory_content
+
+(* type memory = machword -> byte *)
 type stack = list uint256
 type storage = machword -> machword 
 
-(* EVM status *)
-(* TODO *)
-
+(* VM status *)
 type error =
     | OutOfBounds
     | OutOfGas
@@ -63,38 +61,11 @@ type vmstatus =
   | Error error
   | Finish return_type
 
-(* EVM Operations *)
+(* EVM instructions *)
 
-(* Record the number of items required on the stack and returned to the stack for a given operation *)
+(* Record the number of items required on the stack and returned to the stack for a given instruction *)
 type st_num = (int, int)
 
-
-(* Signed Arithmetics *)
-type sign_arith_inst =
-| SDIV
-| SMOD
-| SLT
-| SGT
-| SIGNEXTEND (* Extend length of two's complement signed integer *)
-
-let sign_arith_inst_opcode (inst: sign_arith_inst): int =
-match inst with 
-| SDIV -> 0X05 (*  Signed integer division operation (truncated) *)
-| SMOD -> 0X07
-| SLT -> 0X12
-| SGT -> 0X13
-| SIGNEXTEND -> 0X0b 
-end   
-
-let sign_arith_inst_num (inst: sign_arith_inst): st_num =
-match inst with 
-| SDIV -> (2, 1)
-| SMOD -> (2, 1)
-| SLT -> (2, 1)
-| SGT -> (2, 1)
-| SIGNEXTEND -> (2, 1)
-end   
-          
 (* Unsigned Arithmetics *)
 type arith_inst =
 | ADD
@@ -144,6 +115,33 @@ match inst with
 | ISZERO -> (1, 1)
 | SHA3 -> (2, 1)
 end
+
+(* Signed Arithmetics *)
+type sign_arith_inst =
+| SDIV
+| SMOD
+| SLT
+| SGT
+| SIGNEXTEND (* Extend length of two's complement signed integer *)
+
+let sign_arith_inst_opcode (inst: sign_arith_inst): int =
+match inst with 
+| SDIV -> 0X05 (*  Signed integer division operation (truncated) *)
+| SMOD -> 0X07
+| SLT -> 0X12
+| SGT -> 0X13
+| SIGNEXTEND -> 0X0b 
+end   
+
+let sign_arith_inst_num (inst: sign_arith_inst): st_num =
+match inst with 
+| SDIV -> (2, 1)
+| SMOD -> (2, 1)
+| SLT -> (2, 1)
+| SGT -> (2, 1)
+| SIGNEXTEND -> (2, 1)
+end   
+          
 
 (* Bits *)
 type bits_inst =
@@ -241,9 +239,9 @@ end
 
 (* Memory Operations *)
 type memory_inst =
-| MLOAD 
-| MSTORE 
-| MSTORE8 
+| MLOAD (* Load word from memory *)
+| MSTORE (* Save word to memory *)
+| MSTORE8 (* Save byte to memory *)
 | MSIZE (* the size of the currently used part of the memory *)
 | CALLDATACOPY (* copy the caller's data to the memory *)
 | CODECOPY (* copy part of the currently running code to the memory *)
@@ -251,13 +249,13 @@ type memory_inst =
 
 let memory_inst_opcode (inst: memory_inst) : int =
 match inst with 
-| MLOAD -> 0X51 (* Load word from memory *)
-| MSTORE -> 0X52 (* Save word to memory *)
-| MSTORE8 -> 0X53 (* Save byte to memory *)
-| MSIZE -> 0X59 (* the size of the currently used part of the memory *)
-| CALLDATACOPY -> 0X37 (* copy the caller's data to the memory *)
-| CODECOPY -> 0X39(* copy part of the currently running code to the memory *)
-| EXTCODECOPY -> 0X3c(* copy part of the code of a specified account *)
+| MLOAD -> 0X51 
+| MSTORE -> 0X52 
+| MSTORE8 -> 0X53 
+| MSIZE -> 0X59 
+| CALLDATACOPY -> 0X37 
+| CODECOPY -> 0X39
+| EXTCODECOPY -> 0X3c
 end
 
 let memory_inst_num (inst: memory_inst) : st_num =
@@ -265,12 +263,11 @@ match inst with
 | MLOAD -> (1, 1) 
 | MSTORE -> (2, 0) 
 | MSTORE8 -> (2, 0) 
-| MSIZE -> (0, 1)(* Copy code running in current environment to memory *)
-| CALLDATACOPY -> (3, 0) (* copy the caller's data to the memory *)
-| CODECOPY -> (3, 0)(* copy part of the currently running code to the memory *)
-| EXTCODECOPY -> (4, 0)(* copy part of the code of a specified account *)
+| MSIZE -> (0, 1)
+| CALLDATACOPY -> (3, 0) 
+| CODECOPY -> (3, 0)
+| EXTCODECOPY -> (4, 0)
 end
-
 
 (* Storage Operations *)
 type storage_inst =
@@ -279,14 +276,14 @@ type storage_inst =
 
 let storage_inst_opcode (inst: storage_inst): int = 
 match inst with 
-| SLOAD -> 0X54 (*Load word from the storage *)
-| SSTORE -> 0X55 (* Save word to the storage *)
+| SLOAD -> 0X54 
+| SSTORE -> 0X55 
 end
 
 let storage_inst_num (inst: storage_inst): st_num = 
 match inst with 
-| SLOAD -> (1, 1)(*Load word from the storage *)
-| SSTORE -> (2, 0) (* Save word to the storage *)
+| SLOAD -> (1, 1)
+| SSTORE -> (2, 0)
 end
 
 (*Program Counter Operation *)
@@ -299,12 +296,13 @@ type pc_inst =
 let pc_inst_opcode (inst: pc_inst): int = 
 match inst with
 | JUMP -> 0X56
-| JUMPI -> 0X57 (* Conditionally alter the program counter. *)
+| JUMPI -> 0X57
 | PC -> 0X58 
 | JUMPDEST -> 0X5b
 end
 
-let pc_inst_num (inst: pc_inst): st_num = match inst with
+let pc_inst_num (inst: pc_inst): st_num = 
+match inst with
 | JUMP -> (1, 0)
 | JUMPI -> (2, 0)
 | PC -> (0, 1)
@@ -313,13 +311,12 @@ end
 
 
 (* Stack Operations *)
-
-(* 32 PUSH operations in total *)
-(* The pushed value is represented by a list of bytes. *)
+(* The PUSH instruction to be updated*)
 
 type stack_inst =
   | POP (* Remove item from stack *)
   | PUSH machword (* pushing an element to the stack *) 
+  (* | PUSH (list byte)  *)
   | CALLDATALOAD (* push a word to the stack which is taken from the caller's data *)
 
 exception PushError
@@ -336,7 +333,8 @@ raises {PushError -> False}
 | _ -> absurd
 end
 
-let stack_inst_num (inst: stack_inst): st_num = match inst with
+let stack_inst_num (inst: stack_inst): st_num = 
+match inst with
 | POP -> (1, 0)
 | PUSH _ -> (0, 1)
 | CALLDATALOAD -> (1, 1)
@@ -346,7 +344,7 @@ end
 type dup_inst = uint4
 
 let dup_inst_opcode (inst: dup_inst): int =
-(UInt4.to_int inst + 0X80) 
+ (UInt4.to_int inst) + 0X80
 
 let dup_inst_num (inst: dup_inst): st_num =
 (UInt4.to_int inst, (UInt4.to_int inst) + 1 )
@@ -355,7 +353,7 @@ let dup_inst_num (inst: dup_inst): st_num =
 type swap_inst = uint4
 
 let swap_inst_opcode (inst: swap_inst): int =
-  ((UInt4.to_int inst) + 0X90)
+(UInt4.to_int inst) + 0X90
 
 let swap_inst_num (inst: swap_inst): st_num =
 ((UInt4.to_int inst) + 1, (UInt4.to_int inst) + 1)
@@ -369,7 +367,8 @@ type log_inst =
 | LOG3
 | LOG4
 
-let log_inst_opcode (inst: log_inst): int = match inst with
+let log_inst_opcode (inst: log_inst): int = 
+match inst with
 | LOG0 -> 0Xa0
 | LOG1 -> 0Xa1
 | LOG2 -> 0Xa2
@@ -572,27 +571,8 @@ constant g_blockhash: int = 20
 constant g_quaddivisor: int = 100
 
 
-(* TODO Move to the preprocessor part: begin *)
-(*
-
-type program = {
-  program_content : int -> option instruction; 
-  program_length  : int; (* the length of the program in bytes *)
-}
-
-let inst_list_of_program(p: program) (idx: int): byte =
-   match p.program_content idx with
-   | None -> 0
-   | Some instruction ->
-      match List.nth 0 (inst_opcode inst) with
-      | None -> 0
-      | Some a -> a
-      end
-   end
 
 
-(* Move to the preprocessor part: end *)
-*)
 
 
 (* Representation of the machine state part *)
@@ -611,11 +591,6 @@ type machine_state = {
 
 
 (* The result of a program execution is the results of its instructions contained in the program *)
-
-
-
-
-
 
 (* Auxiliary functions for EVM instructions *)  
 
