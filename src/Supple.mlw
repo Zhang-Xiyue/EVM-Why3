@@ -1,9 +1,0 @@
-let byte_to_uint256 (pos : uint256) (word: uint256): uint256 =
-if uint256.to_int(pos) >= 32 then uint256.of_int(0)
-end
-
-let rec log256 (x: int): int =
- if x < = 255 then 0 else 1 + log256(x/256)
-
-
-
