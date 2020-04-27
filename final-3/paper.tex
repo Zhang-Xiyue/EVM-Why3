@@ -209,8 +209,8 @@ type instruction =
 }
 
 The organization of the instruction category is a bit different from the yellow paper~\cite{wood2014ethereum}. 
-The comparison operations are grouped in the arithmetic operation set \texttt{Arith}; 
-and the comparison operations for signed arithmetic are included in the signed arithmetic operation set \texttt{Sarith}. 
+% The comparison operations are grouped in the arithmetic operation set \texttt{Arith}; 
+% and the comparison operations for signed arithmetic are included in the signed arithmetic operation set \texttt{Sarith}. 
 % The bitwise operations and operation \texttt{BYTE} are categorized into the bit-related instruction group \texttt{Bits}. 
 The information related instructions including environmental and block information are defined in type \texttt{info\_inst}, 
 except \texttt{CALL} and \texttt{CODE} instructions, such as \texttt{CALLDATACOPY}, \texttt{CODECOPY} and \texttt{CALLDATALOAD}. 
@@ -221,17 +221,29 @@ In case when some illegal command occurs, the instruction \texttt{Invalid} is in
 The specification of the remaining instruction groups are basically the same as the corresponding instruction subsets in \cite{wood2014ethereum}. 
 
 \subsubsection{Interpreter Definition}\label{sec:interpreter}
-The specification of \texttt{interpreter} formalizes the state transition result of different instructions. For a specific instruction, the interpreter determines the resultant machine status developing from the current status. Some auxiliary functions are defined
-to make the definition of the interpreter more concise and compact. For example, the following function is used to obtain the next instruction to be executed. It is obtained from the instruction list following the program counter. 
+The specification of \texttt{interpreter} formalizes the state transition result of different instructions. 
+For a specific instruction, the interpreter determines the resultant machine status developing from the current status. 
+Some auxiliary functions are defined to make the definition of the interpreter more concise and compact. 
 \begin{verbatim}
-let get_inst (mac_st: machine_state): option instruction =
-  match mac_st.mac_pc, mac_st.mac_insts with 
-  | pc, insts -> (nth pc insts) 
-  end    
+let interpreter (m: machine_state): machine_state =
+let inst = get_inst m in
+match inst with 
+  | Some (Arith ADD) -> let (st', a) = (pop_stack (m.mac_stack)) in 
+    let (st'', b) = ( pop_stack st') in ...
+    {m with mac_stack = push_stack st'' (a' + b'); ...}
 \end{verbatim}
 
-Pop and push operations are the most commonly-used manipulations for the state transition of stack. Auxiliary functions \texttt{push\_stack} and \texttt{pop\_stack} are defined to control the change of stack status. For capturing the status transition result of \texttt{Swap} instructions, recursive functions \texttt{fetch} and \texttt{drop} are defined to support more direct manipulation on lists. Another function \texttt{swap\_stack} is defined further for state transition of swap instructions.
-With these pre-defined auxiliary functions, the definition of the interpreter function is essentially comprised of machine status update with regard to concrete instructions. 
+For example, in the above code snippet of \texttt{Arith ADD} instrcution, 
+\texttt{get\_inst} is used to obtain the next instruction to be executed. 
+It is obtained from the instruction list following the program counter. 
+% Pop and push operations are the most commonly-used manipulations for the state transition of stack. 
+Functions \texttt{push\_stack} and \texttt{pop\_stack} are defined to control the pop and push manipulations
+for the state transition of stack. 
+% For capturing the status transition result of \texttt{Swap} instructions, 
+% recursive functions \texttt{fetch} and \texttt{drop} are defined to support more direct manipulation on lists. 
+% Another function \texttt{swap\_stack} is defined further for state transition of swap instructions.
+With the support of pre-defined auxiliary functions, 
+the definition of the interpreter function is essentially comprised of machine status update with regard to the instructions. 
 
 \begin{figure*}[t]
   \centering

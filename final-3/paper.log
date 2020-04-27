@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.9.16)  27 APR 2020 17:22
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.9.16)  27 APR 2020 18:03
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -942,28 +942,37 @@ Overfull \hbox (9.36829pt too wide) has occurred while \output is active
  []
 
 [3]
+Overfull \hbox (4.54059pt too wide) in paragraph at lines 231--231
+[]  \T1/cmtt/m/n/10 | Some (Arith ADD) -> let (st', a) = (pop_stack (m.mac_stack)) in[] 
+ []
+
+
+Overfull \hbox (8.23413pt too wide) in paragraph at lines 236--247
+\T1/cmr/m/n/10 struc-tion list fol-low-ing the pro-gram counter. Func-tions \T1/cmtt/m/n/10 push_stack \T1/cmr/m/n/10 and \T1/cmtt/m/n/10 pop_stack
+ []
+
 <runninginPE.pdf, id=67, 679.53876pt x 393.47pt>
 File: runninginPE.pdf Graphic file (type pdf)
 <use runninginPE.pdf>
-Package pdftex.def Info: runninginPE.pdf  used on input line 238.
+Package pdftex.def Info: runninginPE.pdf  used on input line 250.
 (pdftex.def)             Requested size: 271.81068pt x 157.38521pt.
- [4]
+[4]
 Overfull \hbox (9.36829pt too wide) has occurred while \output is active
                                    [] []
  []
 
 [5 </Users/selinazhang/Documents/GitHub/EVM-Why3/final-3/runninginPE.pdf>]
-Overfull \hbox (9.7893pt too wide) in paragraph at lines 280--280
+Overfull \hbox (9.7893pt too wide) in paragraph at lines 292--292
 []\T1/cmtt/m/n/10 to_int a = (to_int result) * (to_int b) + mod (to_int a) (to_int b)}[] 
  []
 
 
-Overfull \hbox (4.54059pt too wide) in paragraph at lines 292--292
+Overfull \hbox (4.54059pt too wide) in paragraph at lines 304--304
 []  \T1/cmtt/m/n/10 (forall result:uint256. result = div a b -> to_int result >= 0 &&[] 
  []
 
 
-Overfull \hbox (15.03802pt too wide) in paragraph at lines 295--295
+Overfull \hbox (15.03802pt too wide) in paragraph at lines 307--307
 []  \T1/cmtt/m/n/10 to_int a = (to_int result * to_int b + mod (to_int a) (to_int b))))[] 
  []
 
@@ -990,9 +999,9 @@ Here is how much of TeX's memory you used:
  22673 multiletter control sequences out of 15000+600000
  18627 words of font info for 61 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 55i,7n,67p,885b,424s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 55i,7n,67p,885b,422s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2018/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}{/usr/local/texlive/2018/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfbx0900.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfbx1000.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfbx1200.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfbx1440.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfrm0900.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sfti1000.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sftt0900.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb>
-Output written on /Users/selinazhang/Documents/GitHub/EVM-Why3/final-3/paper.pdf (9 pages, 348387 bytes).
+Output written on /Users/selinazhang/Documents/GitHub/EVM-Why3/final-3/paper.pdf (9 pages, 348237 bytes).
 PDF statistics:
  184 PDF objects out of 1000 (max. 8388607)
  122 compressed objects within 2 object streams
