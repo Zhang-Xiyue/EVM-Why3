@@ -730,7 +730,7 @@ let get_inst (mac_st: machine_state): option instruction =
 (* Transformation semantics for different insturctions *)
 
 let interpreter: machine_state -> machine_state =
-   fun m -> 
+   function m -> 
    let inst = get_inst m in
    match inst with 
     | Some (System STOP) -> {m with mac_status = (Finish (Normal (UInt256.of_int 0)))}
