@@ -40,7 +40,8 @@ type memory = machword -> option memory_content
 
 (* type memory = machword -> byte *)
 type stack = list uint256
-type storage = machword -> machword 
+type storage = map address machword
+
 
 (* VM status *)
 type error =
