@@ -376,7 +376,8 @@ match inst with
 | LOG4 -> 0Xa4
 end
 
-let log_inst_num (inst: log_inst): st_num = match inst with
+let log_inst_num (inst: log_inst): st_num = 
+match inst with
 | LOG0 -> (2, 0)
 | LOG1 -> (3, 0)
 | LOG2 -> (4, 0)

@@ -261,13 +261,18 @@ the definition of the interpreter function is essentially comprised of machine s
 Fig. \ref{fig2} shows the second phase of the framework: deploy the extracted OCaml implementation from Why3 in production environments. 
 The deployment is essentially based on a co-compilation framework between OCaml and Rust.
 
-OCaml is a functional programming language where the programs can be compiled either to OCaml bytecode or executable binaries. 
-In the latter case, a runtime library is attached to handle various non-functional features like memory management. 
-Through the \texttt{Callback} module, OCaml allows us to register a set of callback functions which can be used as an interface
-in static or dynamic linking. 
-So we first defined a series of customized drivers to extract WhyML programs into OCaml programs. 
-After the extraction, the OCaml implementation of EVM is then encapsulated and exposed as a static linked library. 
-This library can be further called by the EVM host in Rust.
+OCaml is a functional programming language that shares a highly identical language definition and formal semantics with Why3. 
+Through the official OCaml code generator equipped with Why3, 
+we extract the verified specification of EVM into an executable OCaml module. 
+A JSON-based protocol is developed as a bridge between the OCaml implementation and the EVM host in Rust.
+
+% OCaml is a functional programming language where the programs can be compiled either to OCaml bytecode or executable binaries. 
+% In the latter case, a runtime library is attached to handle various non-functional features like memory management. 
+% Through the \texttt{Callback} module, OCaml allows us to register a set of callback functions which can be used as an interface
+% in static or dynamic linking. 
+% So we first defined a series of customized drivers to extract WhyML programs into OCaml programs. 
+% After the extraction, the OCaml implementation of EVM is then encapsulated and exposed as a static linked library. 
+% This library can be further called by the EVM host in Rust.
 
 Rust is a multi-paradigm system programming language which is designed to provide better memory safety 
 while maintaining high performance \cite{LBHN16}.
@@ -362,6 +367,15 @@ _auc_st.end_state = True
 && _auc_end.bene_amount.benefici = auc_const.beneficiary 
 && _auc_end.bene_amount.benefit_amount = _auc_end.finalBid} = ...
 \end{verbatim}
+
+\paragraph{Testing of arithematic operations.}
+Cita-vm~\cite{citavm} is an Rust implementation of the Ethereum Virtual Machine developed by the CITAHub team. 
+In a forked version of Cita-vm, we patched the EVM interpreter by redirecting it to the OCaml implementation. 
+From the official EVM Consensus Tests~\cite{evmtests},
+we select the \emph{vmArithmeticTest} set and run the test cases. 
+The OCaml EVM implementation passes all the selected test cases and 
+proves its capability in the production environment.
+A guide of reproducing the test result can be found at \cite{Examples}.
 
 \section{Related Work}\label{Sec: Related}
 

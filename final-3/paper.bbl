@@ -13,6 +13,13 @@ Bhargavan, K., Delignat{-}Lavaud, A., Fournet, C., Gollamudi, A., Gonthier, G.,
   B{\'{e}}guelin, S.Z.: Formal verification of smart contracts: Short paper.
   In: Proceedings of PLAS@CCS 2016. pp. 91--96. {ACM} (2016)
 
+\bibitem{citavm}
+CITA-VM: \url{https://github.com/citahub/cita-vm}
+
+\bibitem{evmtests}
+{Common tests for all Ethereum implementations}:
+  \url{https://github.com/ethereum/tests}
+
 \bibitem{Ethereum}
 Ethereum: \url{https://github.com/ethereum}, last accessed April 2, 2019
 
