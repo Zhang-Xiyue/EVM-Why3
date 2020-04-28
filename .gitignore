@@ -1,3 +1,4 @@
 # automatically generated
 drivers/types/UInt*.drv
 evm*
+tests/.DS_Store
